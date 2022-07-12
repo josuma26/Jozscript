@@ -1,0 +1,8 @@
+Need:
+- Enhance language with sums, products (including pattern matching and projections)
+- Adding recursive functions, types
+- Adding subtyping, polymorphism
+- Statements
+- Hoare logic
+- Theorem proving for generated theorems
+- Lexing, parsing

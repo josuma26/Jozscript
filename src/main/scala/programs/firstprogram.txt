@@ -1,0 +1,5 @@
+let x := some:2 as {some:Nat, none:Unit};
+match x with {
+    | some:x => true
+    | none:y => false
+}
