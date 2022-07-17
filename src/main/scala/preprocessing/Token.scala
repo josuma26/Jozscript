@@ -37,6 +37,8 @@ case class UnitToken() extends Token
 case class AsToken() extends Token
 case class MatchToken() extends Token
 case class WithToken() extends Token
+case class WhileToken() extends Token
+case class DoToken() extends Token
 
 /**
  * Types

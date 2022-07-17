@@ -9,13 +9,48 @@ sealed trait Type {
   }
 }
 
-case class BoolType() extends Type
-case class NatType() extends Type
-case class UnitType() extends Type
+case class BoolType() extends Type {
+  override def toString: String = "Bool"
+}
+case class NatType() extends Type {
+  override def toString: String = "Nat"
+}
+case class UnitType() extends Type {
+  override def toString: String = "Unit"
+}
 
-case class FuncTy(argTy: Type, retType: Type) extends Type
+case class FuncTy(argTy: Type, retType: Type) extends Type {
+  override def toString: String = "(" + argTy.toString + " -> " + retType.toString + ")"
+}
 
-case class ProductTy(types: List[Type]) extends Type
+case class ProductTy(types: List[Type]) extends Type {
+  override def toString: String = types.map(_.toString).mkString("[", " * ","]")
+}
 
-case class SumTy(types: Map[String, Type]) extends Type
+case class SumTy(types: Map[String, Type]) extends Type {
+  override def toString: String = types.map(pair => pair._1 + ": " + pair._2.toString).mkString("{",",","}")
+}
+
+/**
+ * User defined type.
+ *
+ * type Name<T> := {
+ *  | cons1: Name
+ *  | cons2: T -> Name
+ *  | ....
+ *  |...
+ *  }
+ * @param name
+ */
+
+trait RecursiveType extends Type
+case class BaseRecursiveType(name: String) extends RecursiveType
+case class CustomType(name: String, constructors: Map[String, Type], typeVars: Map[String, Type])
+  extends RecursiveType
+
+object typeExpr {
+  val natList = CustomType("natList",
+    Map("nil" -> BaseRecursiveType("natList"), "cons" -> FuncTy(NatType(), BaseRecursiveType("natList"))),
+    Map())
+}
 

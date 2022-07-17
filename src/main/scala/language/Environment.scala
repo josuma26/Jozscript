@@ -15,7 +15,7 @@ class Environment {
     typeMap.put(name, ty)
   }
 
-  def unbind(name: String) = {
+  def unbind(name: String): Unit = {
     typeMap.remove(name)
   }
 

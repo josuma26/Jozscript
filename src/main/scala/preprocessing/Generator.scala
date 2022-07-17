@@ -1,11 +1,12 @@
 package preprocessing
 
-import language.{Expression, Type}
+import language.Type
+import language.expressions.Expression
 
 /**
  * To parse an expression. Contains logic to create a different generator given a token
  */
-trait Generator
+sealed trait Generator
 
 case class Expr(expr: Expression) extends Generator
 case class FromToken(func: Token => Generator) extends Generator

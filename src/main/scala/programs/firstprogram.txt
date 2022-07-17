@@ -1,5 +1,5 @@
-let x := some:2 as {some:Nat, none:Unit};
+let x := some:[1,2,3] as {some:[Nat*Nat*Nat], none:Unit};
 match x with {
-    | some:x => true
-    | none:y => false
+    | some:l => l.0 + l.1
+    | none:x => 0
 }

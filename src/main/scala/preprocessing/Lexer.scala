@@ -1,7 +1,6 @@
 package preprocessing
 
-import language.BoolBinOp
-
+import language.expressions.BoolBinOp
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
@@ -38,6 +37,8 @@ object Lexer {
     ExactMatch("unit", UnitToken()),
     ExactMatch("lambda", Lambda()),
     ExactMatch("let", LetToken()),
+    ExactMatch("while", WhileToken()),
+    ExactMatch("do", DoToken()),
     ExactMatch(":=", AssignToken()),
     ExactMatch(":", Colon()),
     ExactMatch(",", Comma()),
@@ -53,6 +54,7 @@ object Lexer {
     OneOf(List("&&", "||"), BoolBinOpOP),
     OneOf(List("<",">","=",">=","<=","=","!="), NumCompOpOP),
     Predicate(word => word.forall(c => c.isDigit), w => Number(w.toInt)),
+    ExactMatch("->", Arrow()),
     ExactMatch("=>", FuncAssignToken()),
     ExactMatch("Bool", BoolTypeToken()),
     ExactMatch("Nat", NatTypeToken()),

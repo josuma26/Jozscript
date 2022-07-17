@@ -6,3 +6,12 @@ Need:
 - Hoare logic
 - Theorem proving for generated theorems
 - Lexing, parsing
+
+let x: Bool := ...
+match x with {
+    | true => true
+    | false => false
+type Tree<T> :=
+    | leaf: Tree<T>
+    | node: T -> Tree<T> -> Tree<T> -> Tree<T>
+

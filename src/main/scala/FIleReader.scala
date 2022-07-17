@@ -1,4 +1,4 @@
-import language.Expression
+import language.expressions.Expression
 import preprocessing.Parser
 
 import java.io.{FileInputStream, FileReader, InputStreamReader}
