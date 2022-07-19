@@ -38,7 +38,6 @@ case class Bool(value: Boolean) extends Value {
   override def toString: String = value.toString
 
   override protected def checkSub(other: Bool.this.type): Boolean = value.equals(other.value)
-
 }
 
 case class Num(value: Int) extends Value {
@@ -55,9 +54,8 @@ case class UnitVal() extends Value {
   override def toString: String = "unit"
 
   override protected def checkSub(other: UnitVal.this.type): Boolean = true
-
-
 }
+
 
 case class TupleValue(values: List[Value]) extends Value {
 
@@ -65,20 +63,32 @@ case class TupleValue(values: List[Value]) extends Value {
 
   override def toString: String = values.map(_.toString).mkString("[", ", ","]")
 
+  override def sameShapeAs(other: Expression): Boolean = {
+    other match {
+      case TupleExpression(otherExprs) => checkExpressions(otherExprs)
+      case TupleValue(otherExprs) => checkExpressions(otherExprs)
+      case _ => false
+    }
+  }
+
   override protected def checkSub(other: TupleValue.this.type): Boolean = {
-    values.length == other.values.length && values.indices.forall(index => values(index).sameShapeAs(other.values(index)))
+    checkExpressions(other.values)
+  }
+
+  private def checkExpressions(otherExprs: List[Expression]): Boolean = {
+    values.length == otherExprs.length && values.indices.forall(index => values(index).sameShapeAs(otherExprs(index)))
   }
 }
 
 
 case class VariantValue(label: String, value: Value, ty: Type) extends Value {
   override def typecheck(env: Environment): Type = {
-    val optTy = ty.ensureIsType[SumTy].types.get(label)
+    val optTy = ty.getIfAlias(env).ensureIsType[SumTy].types.get(label)
     if (optTy.isEmpty) {
       throw new IllegalArgumentException(s"$label not a type in $ty")
     }
     val variantBodyType = value.typecheck(env)
-    if (variantBodyType != optTy.get) {
+    if (!variantBodyType.eq(optTy.get, env)) {
       throw new IllegalArgumentException(s"Expected variant body to have ${optTy.get}, found $variantBodyType")
     }
     ty
@@ -88,5 +98,7 @@ case class VariantValue(label: String, value: Value, ty: Type) extends Value {
     label.equals(other.label) && value.sameShapeAs(other.value) && ty.equals(other.ty)
   }
 }
+
+
 
 

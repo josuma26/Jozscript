@@ -39,6 +39,7 @@ case class MatchToken() extends Token
 case class WithToken() extends Token
 case class WhileToken() extends Token
 case class DoToken() extends Token
+case class DefToken() extends Token
 
 /**
  * Types

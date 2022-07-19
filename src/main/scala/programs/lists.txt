@@ -1,0 +1,30 @@
+
+type List := {nil: Unit, cons:[Nat*List]};
+let empty := nil:unit as List;
+
+def singleton(n: Nat): List := { cons:[n, empty] as List };
+
+def map(list: List, func: (Nat -> Nat)): List := {
+    match list with {
+        | cons:[first, rest] => cons:[func(first), map(rest)(func)] as List
+        | n => n
+    }
+};
+
+def generateList(n: Nat, func: (Nat -> Nat)): List := {
+    match n with {
+        | 0 => nil:unit as List
+        | i => cons:[func(i), generateList(i-1)(func)] as List
+    }
+};
+
+def fibonacci(n: Nat): Nat := {
+    match n with {
+        | 0 => 0
+        | 1 => 1
+        | n => fibonacci(n-2) + fibonacci(n-1)
+    }
+};
+
+fibonacci(15)
+

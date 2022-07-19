@@ -48,15 +48,19 @@ trait Pattern {
 case class LabelBinderPattern(label: String, binder: Pattern) extends Pattern {
   override def matches(value: Value, store: Store): Boolean = {
     val asVariant = value.ensureHasType[VariantValue]()
-    asVariant.label == label
+    asVariant.label == label && binder.matches(asVariant.value, store)
   }
 
   override def substituteInto(expr: Expression, value:   Value): Expression = {
+    val asVariant = value.ensureHasType[VariantValue]()
+    if (asVariant.label != label) {
+      throw new IllegalArgumentException(s"$label is not equal to ${asVariant.label}, should not have matched.")
+    }
     binder.substituteInto(expr, value.ensureHasType[VariantValue]().value)
   }
 
   override def typeCheckBound(expr: Expression, env: Environment, valueType: Type): Type = {
-    val optTy = valueType.ensureIsType[SumTy].types.get(label)
+    val optTy = valueType.getIfAlias(env).ensureIsType[SumTy].types.get(label)
     if (optTy.isEmpty) {
       throw new IllegalArgumentException(s"$label not a constructor.")
     }
@@ -64,22 +68,35 @@ case class LabelBinderPattern(label: String, binder: Pattern) extends Pattern {
   }
 }
 
-case class ValuePattern(patternValue: Expression) extends Pattern {
+case class ExpressionPattern(patternValue: Expression) extends Pattern {
   override def matches(value: Value, store: Store): Boolean = {
     patternValue.sameShapeAs(value)
   }
 
   override def substituteInto(expr: Expression, value: Value): Expression = {
-    ???
+    substituteInner(patternValue, expr, value)
   }
 
-  /**
-   * match lambda x:Nat, x + 2 with {
-   *  | lambda y:Nat, body =>
-   * @param expr
-   * @param env
-   * @return
-   */
+  private def substituteInner(patternValue: Expression, expr: Expression, value: Value): Expression = {
+    patternValue match {
+      case Num(_) | Bool(_) | UnitVal() => expr
+      case Func(arg, ty, body) => ???
+      case TupleValue(values) => subsTuple(values,expr, value)
+      case TupleExpression(exprs) => subsTuple(exprs, expr, value)
+      case Var(varName) => expr.substitute(varName, value)
+      case VariantValue(label, value, _) => ???
+    }
+  }
+
+  private def subsTuple(values: List[Expression],expr: Expression,  value:Value): Expression = {
+    val valuesInTuple = value.ensureHasType[TupleValue]().values
+    var outputExpr = expr
+    values.indices.foreach(index => {
+      outputExpr = substituteInner(values(index), outputExpr, valuesInTuple(index))
+    })
+    outputExpr
+  }
+
 
   override def typeCheckBound(expr: Expression, env: Environment, valueType: Type): Type = {
     bindFreeVariables(patternValue, env, valueType)

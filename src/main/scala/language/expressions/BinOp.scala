@@ -20,7 +20,7 @@ abstract class BinOp[T, R, V <: Value, V2 <: Value](op: String, e1: Expression, 
   override def typecheck(env: Environment): Type = {
     val leftTy = e1.typecheck(env)
     val rightTy = e2.typecheck(env)
-    if (leftTy == rightTy && rightTy == argTy) {
+    if (leftTy.eq(rightTy, env) && rightTy.eq(argTy, env)) {
       return retTy
     }
     throw new IllegalArgumentException(s"Expected binary operation to have two $argTy arguments.")

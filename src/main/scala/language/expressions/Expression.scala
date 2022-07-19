@@ -17,9 +17,10 @@ trait Expression {
   def typecheck(env: Environment): Type
 
   def sameShapeAs(other: Expression): Boolean = {
-    other match {
-      case other1: this.type => checkSub(other1)
-      case _ => false
+    if (this.getClass.equals(other.getClass)) {
+      checkSub(other.asInstanceOf[this.type])
+    } else {
+      false
     }
   }
 

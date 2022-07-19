@@ -1,7 +1,7 @@
 package language
 
 import language.expressions.Expression
-import language.values.{Bool, UnitVal, Value}
+import language.values.{Bool, UnitVal, Value, Func}
 
 trait Statement extends Expression {
 
@@ -85,6 +85,66 @@ case class WhileLoop(cond: Expression, body: Expression) extends Statement {
   }
 
   override def toString: String = "while (" + cond.toString + ") {\n\t" + body.toString + "}"
+}
+
+case class TypeDefinition(name: String, ty: Type) extends Statement {
+  override def substitute(variable: String, value: Value): Statement = this
+
+  override def evaluate(store: Store): Value = UnitVal()
+
+  override def typecheck(env: Environment): Type = {
+    env.saveAlias(name, ty)
+    UnitType()
+  }
+}
+
+case class FunctionDefinition(name: String, args:Map[String, Type], retTy: Type, body: Expression) extends Statement {
+  override def substitute(variable: String, value: Value): Statement = {
+    if (args.keySet.contains(variable)) {
+      this
+    } else {
+      FunctionDefinition(name, args, retTy,  body.substitute(variable, value))
+    }
+  }
+
+  override def evaluate(store: Store): Value = {
+    val curried = curry(args.keySet.toList, body).evaluate(store)
+    store.save(name, curried)
+    UnitVal()
+  }
+
+  /*
+    How to type check recursive functions?
+
+    def length(l: List):
+   */
+  override def typecheck(env: Environment): Type = {
+    val curriedType = curriedArguments(args.keySet.toList, retTy)
+    env.bind(name, curriedType)
+    val curried = curry(args.keySet.toList, body)
+    curried.typecheck(env)
+    UnitType()
+  }
+
+  private def curry(args: List[String], acc: Expression): Expression = {
+    if (args.isEmpty) {
+      acc
+    } else {
+      val (_,rest) = args.splitAt(1)
+      val arg = args.head
+      curry(rest, Func(arg, this.args(arg), acc))
+    }
+  }
+
+  private def curriedArguments(args: List[String], acc: Type): Type = {
+    if (args.isEmpty) {
+      acc
+    } else {
+      val (_, rest) = args.splitAt(1)
+      val arg = args.head
+      curriedArguments(rest, FuncTy(this.args(arg), acc))
+    }
+  }
 }
 
 

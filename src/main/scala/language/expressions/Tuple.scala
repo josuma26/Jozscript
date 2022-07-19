@@ -3,7 +3,7 @@ package language.expressions
 import language.values.{TupleValue, Value}
 import language.{Environment, ProductTy, Store, Type}
 
-case class TupleExpression(exprs: List[Expression]) extends Expression {
+case class TupleExpression(exprs: List[Expression]) extends Expression  {
 
   override def typecheck(env: Environment): Type = ProductTy(exprs.map(_.typecheck(env)))
 
@@ -11,8 +11,20 @@ case class TupleExpression(exprs: List[Expression]) extends Expression {
 
   override def substitute(variable: String, value: Value): Expression = TupleExpression(exprs.map(_.substitute(variable, value)))
 
+  override def sameShapeAs(other: Expression): Boolean = {
+    other match {
+      case TupleExpression(otherExprs) => checkExpressions(otherExprs)
+      case TupleValue(otherExprs) => checkExpressions(otherExprs)
+      case _ => false
+    }
+  }
+
   override protected def checkSub(other: TupleExpression.this.type): Boolean = {
-    exprs.length == other.exprs.length && exprs.indices.forall(index => exprs(index).sameShapeAs(other.exprs(index)))
+    checkExpressions(other.exprs)
+  }
+
+  private def checkExpressions(otherExprs: List[Expression]): Boolean = {
+    exprs.length == otherExprs.length && exprs.indices.forall(index => exprs(index).sameShapeAs(otherExprs(index)))
   }
   override def toString: String = exprs.map(_.toString).mkString("[",", ","]")
 }

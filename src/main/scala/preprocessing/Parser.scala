@@ -1,8 +1,8 @@
 package preprocessing
 
-import language.expressions.{App, BoolBinOp, Expression, Match, NumBinOp, NumCompOP, Projection, Sequence, TupleExpression, Var, VariantExpression}
-import language.values.{Bool, Func, Num}
-import language.{Assign, BoolType, Environment, FuncTy, NatType, ProductTy, Store, SumTy, Type, UnitType, WhileLoop, values}
+import language.expressions.{App, BoolBinOp, Expression, Match, NumBinOp, NumCompOP, PatternMatch, Projection, Sequence, TupleExpression, Var, VariantExpression}
+import language.values.{Bool, Func, Num, UnitVal}
+import language.{Assign, BoolType, Environment, ExpressionPattern, FuncTy, FunctionDefinition, LabelBinderPattern, NatType, Pattern, ProductTy, Store, SumTy, Type, TypeAlias, TypeDefinition, UnitType, WhileLoop, values}
 
 import scala.collection.mutable
 import scala.collection.mutable.{ListBuffer, Map}
@@ -42,6 +42,7 @@ object Parser {
       case Number(value) => parseAfterExpression(func, Num(value))
       case BooleanToken(value) => parseAfterExpression(func,Bool(value))
       case VariableToken(name) => parseAfterExpression(func,Var(name))
+      case UnitToken() => parseAfterExpression(func, UnitVal())
       case Lambda() => lambdaGen(func)
       case LetToken() => letGen(func)
       case OParen() => ExpressionGenerator(expr => FromToken(nextToken => {
@@ -50,6 +51,8 @@ object Parser {
       case MatchToken() => matchGenerator(func)
       case OBracket() => tupleGenerator(func, ListBuffer())
       case WhileToken() => whileGenerator(func)
+      case TypeToken() => defineTypeGen(func)
+      case DefToken() => defFunctionGen(func)
       case _ => throw new IllegalArgumentException(s"Unexpected token: $token")
     }
   }
@@ -71,6 +74,7 @@ object Parser {
         case _ => throw new IllegalArgumentException("Other uses of ':' not yet supported.")
       }
       case EOLToken() => func(expr)
+      case SemiColon() => ExpressionGenerator(nextExpr => func(Sequence(expr, nextExpr)))
       case _ => parseOne(func(expr), token)
     }
   }
@@ -79,11 +83,15 @@ object Parser {
     FromToken(token => parseAfterExpression(func, expr, token))
   }
 
+  def parseType(func: Type => Generator): Generator = {
+    FromToken(parseType(func, _))
+  }
   def parseType(func: Type => Generator, token: Token): Generator = {
     token match {
       case BoolTypeToken() => parseAfterType(func, BoolType())
       case NatTypeToken() => parseAfterType(func, NatType())
       case UnitTypeToken() => parseAfterType(func, UnitType())
+      case VariableToken(varName) => parseAfterType(func, TypeAlias(varName))
       case OCurly() => sumTypeGenerator(func, mutable.Map(), None)
       case OParen() => TypeGenerator(ty => FromToken(matchTokenThen[CParen](_)(_ => {
         func(ty)
@@ -125,6 +133,40 @@ object Parser {
       })))
     }))
 
+  private def defineTypeGen(afterGen: Expression => Generator) =
+    FromToken(matchTokenThen[VariableToken](_)(varToken => FromToken(matchTokenThen[AssignToken](_)(_ => {
+      TypeGenerator(ty => afterGen(TypeDefinition(varToken.name, ty)))
+    }))))
+
+  private def defFunctionGen(afterGen: Expression => Generator): Generator = {
+    FromToken(matchTokenThen[VariableToken](_)(varName => FromToken(matchTokenThen[OParen](_)( _ => {
+      defFunctionGen(afterGen, varName.name, mutable.Map(), None)
+    }))))
+  }
+
+  private def defFunctionGen(afterGen: Expression => Generator, funcName: String,
+                             args: mutable.Map[String, Type], argName: Option[String]): Generator = {
+    FromToken {
+      case Comma() => defFunctionGen(afterGen, funcName, args, argName)
+      case VariableToken(name) if argName.isEmpty => defFunctionGen(afterGen, funcName, args, Some(name))
+      case VariableToken(name) =>
+        parseAfterType(ty => defFunctionGen(afterGen, funcName, args += (argName.get -> ty), None) , TypeAlias(name))
+      case Colon() if argName.nonEmpty =>
+        parseType(ty => defFunctionGen(afterGen, funcName, args += (argName.get -> ty), None))
+      case CParen() => FromToken(matchTokenThen[Colon](_)(_ => TypeGenerator(retTy => {
+        FromToken(matchTokenThen[AssignToken](_)( _ => FromToken(matchTokenThen[OCurly](_)(_ => {
+          ExpressionGenerator(expr => FromToken(matchTokenThen[CCurly](_)(_ => {
+            afterGen(FunctionDefinition(funcName, args.toMap, retTy, expr))
+          })))
+        }))))
+      })))
+      case token if argName.nonEmpty =>
+        parseType(ty => defFunctionGen(afterGen, funcName, args += (argName.get -> ty), None), token)
+      case token => throw new IllegalArgumentException(s"Unexpected token. Found: $token")
+
+    }
+  }
+
   private def tupleGenerator(afterGen: Expression => Generator, accum: ListBuffer[Expression]): Generator =
     FromToken {
       case Comma() => ExpressionGenerator(expr => tupleGenerator(afterGen, accum.addOne(expr)))
@@ -154,11 +196,38 @@ object Parser {
   private def matchGenerator(afterGen: Expression => Generator): Generator = {
     ExpressionGenerator(expr => FromToken(tok => matchTokenThen[WithToken](tok)(_ => {
       FromToken(tok => matchTokenThen[OCurly](tok)(_ => {
-        casesGenerator(afterGen, expr, mutable.Map(), None, None)
+        casesGenerator(afterGen, expr, ListBuffer(), None)
       }))
     })))
   }
 
+  private def casesGenerator(afterGen: Expression => Generator, body: Expression,
+                             cases: ListBuffer[(Pattern, Expression)],
+                             pattern: Option[Pattern]): Generator = {
+    FromToken {
+      case Pipe() => casesGenerator(afterGen, body, cases, pattern)
+      case FuncAssignToken() if pattern.nonEmpty => casesGenerator(afterGen, body, cases, pattern)
+      case CCurly() => afterGen(PatternMatch(body, cases.toList))
+      case token if pattern.nonEmpty =>
+        parseExpression(expr => casesGenerator(afterGen, body, cases.addOne((pattern.get, expr)), None), token)
+      case token => parsePattern(patt => casesGenerator(afterGen, body, cases, Some(patt)), token)
+    }
+  }
+
+  private def parsePattern(func: Pattern => Generator, token: Token): Generator = {
+    token match {
+      case VariableToken(varName) => FromToken(tok => {
+        if (tok.equals(Colon())) {
+          FromToken(parsePattern(patt => func(LabelBinderPattern(varName, patt)),_))
+        } else {
+          parseAfterExpression(expr => func(ExpressionPattern(expr)), Var(varName), tok)
+        }
+      })
+      case tok => parseExpression(expr => func(ExpressionPattern(expr)), tok)
+    }
+  }
+
+  /*
   private def casesGenerator(afterGen: Expression => Generator, body: Expression,
                              cases: mutable.Map[String, (String, Expression)],
                              label: Option[String],
@@ -177,6 +246,8 @@ object Parser {
       case token => throw new IllegalArgumentException(s"Syntax error, found $token")
     }
   }
+
+   */
 
   private def whileGenerator(nextGen: Expression => Generator): Generator = {
     ExpressionGenerator(cond => FromToken(matchTokenThen[DoToken](_)(_ => {

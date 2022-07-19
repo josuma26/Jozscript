@@ -1,16 +1,16 @@
 package language.expressions
 
 import language.values.{Value, VariantValue}
-import language.{Environment, Pattern, Store, SumTy, Type, UnitType, values}
+import language.{Environment, Pattern, Store, SumTy, Type, TypeAlias, UnitType, values}
 
 case class VariantExpression(label: String, expr: Expression, ty: Type) extends Expression {
   override def typecheck(env: Environment): Type = {
-    val optTy = ty.ensureIsType[SumTy].types.get(label)
+    val optTy = ty.getIfAlias(env).ensureIsType[SumTy].types.get(label)
     if (optTy.isEmpty) {
       throw new IllegalArgumentException(s"$label not a type in $ty")
     }
     val variantBodyType = expr.typecheck(env)
-    if (variantBodyType != optTy.get) {
+    if (!variantBodyType.eq(optTy.get, env)) {
       throw new IllegalArgumentException(s"Expected variant body to have ${optTy.get}, found $variantBodyType")
     }
     ty
@@ -66,7 +66,7 @@ case class PatternMatch(expression: Expression, cases: List[(Pattern, Expression
 
       evaluatedType match {
         case None => evaluatedType = Some(exprType)
-        case Some(value) => if (!value.equals(exprType)) {
+        case Some(value) => if (!value.eq(exprType, env)) {
           throw new IllegalArgumentException(s"All branches in must have the same type found [$exprType], expected [$value]")
         }
       }
