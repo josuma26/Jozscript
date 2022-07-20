@@ -53,6 +53,10 @@ case class NumBinOp(op: String,e1: Expression,  e2: Expression) extends
     NumBinOp(op, e1.substitute(variable, value), e2.substitute(variable, value))
   }
 
+  override def typeSubs(typeVar: String, ty: Type): Expression = {
+    NumBinOp(op, e1.typeSubs(typeVar, ty), e2.typeSubs(typeVar, ty))
+  }
+
   override protected def checkSub(other: NumBinOp.this.type): Boolean = {
     op.equals(other.op) && e1.sameShapeAs(other.e1) && e2.sameShapeAs(other.e2)
   }
@@ -68,6 +72,10 @@ case class BoolBinOp(op: String, e1: Expression, e2: Expression) extends
 
   override def substitute(variable: String, value: Value): Expression = {
     BoolBinOp(op, e1.substitute(variable, value), e2.substitute(variable, value))
+  }
+
+  override def typeSubs(typeVar: String, ty: Type): Expression = {
+    BoolBinOp(op, e1.typeSubs(typeVar, ty), e2.typeSubs(typeVar, ty))
   }
 
   override protected def checkSub(other: BoolBinOp.this.type): Boolean = {
@@ -89,6 +97,10 @@ case class NumCompOP(op: String, e1: Expression, e2:Expression) extends
 
   override def substitute(variable: String, value: Value): Expression = {
     NumCompOP(op, e1.substitute(variable, value), e2.substitute(variable, value))
+  }
+
+  override def typeSubs(typeVar: String, ty: Type): Expression = {
+    NumCompOP(op, e1.typeSubs(typeVar, ty), e2.typeSubs(typeVar, ty))
   }
 
   override protected def checkSub(other: NumCompOP.this.type): Boolean = {

@@ -31,6 +31,10 @@ case class App(e1: Expression, e2: Expression) extends Expression {
     App(e1.substitute(variable, value), e2.substitute(variable, value))
   }
 
+  override def typeSubs(typeVar: String, ty: Type): Expression = {
+    App(e1.typeSubs(typeVar, ty), e2.typeSubs(typeVar, ty))
+  }
+
   override def checkSub(other: App.this.type): Boolean = e1.sameShapeAs(other.e1) && e2.sameShapeAs(other.e2)
 
   override def toString: String = e1.toString + "(" + e2.toString + ")"

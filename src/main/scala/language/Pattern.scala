@@ -1,6 +1,6 @@
 package language
 
-import language.expressions.{Expression, TupleExpression, Var}
+import language.expressions.{App, Expression, TupleExpression, Var}
 import language.values.{Bool, Func, Num, TupleValue, UnitVal, Value, VariantValue}
 
 /**
@@ -113,6 +113,7 @@ case class ExpressionPattern(patternValue: Expression) extends Pattern {
       case TupleExpression(exprs) => bindTuple(exprs, env, valueType)
       case Var(varName) => env.bind(varName, valueType)
       case VariantValue(label, value, _) => ???
+      case pa => throw new IllegalArgumentException(s"Invalid pattern $pa")
     }
   }
 

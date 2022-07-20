@@ -15,6 +15,7 @@ def tree2list(tree: Tree): List := {
         | node:[n, left, right] => cons:[n, append(tree2list(left))(tree2list(right))] as List
     }
 };
+
 def sumTree(t:Tree): Nat := {
     match t with {
         | leaf:n => n

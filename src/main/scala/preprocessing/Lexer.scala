@@ -1,6 +1,5 @@
 package preprocessing
 
-import language.expressions.BoolBinOp
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
@@ -64,6 +63,7 @@ object Lexer {
     ExactMatch("with", WithToken()),
     ExactMatch("type", TypeToken()),
     ExactMatch("def", DefToken()),
+    ExactMatch("Lambda", BigLambdaToken()),
     ExactMatch("|", Pipe())
   )
 

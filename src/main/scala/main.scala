@@ -1,12 +1,11 @@
 
-import language.expressions.{Expression, PatternMatch, Var}
+import language.expressions.Expression
 import language.values.Value
-import language.{Environment, ExpressionPattern, FunctionDefinition, LabelBinderPattern, NatType, ProductTy, Store, Type, TypeAlias, UnitType, expressions}
-import preprocessing.Parser
+import language.{Environment, Store, Type}
 
 object main {
   def main(args: Array[String]): Unit = {
-    fromFile("src/main/scala/programs/trees.txt")
+    fromFile("src/main/scala/programs/firstprogram.txt")
     //fromFile("src/main/scala/programs/lists.txt")
   }
 

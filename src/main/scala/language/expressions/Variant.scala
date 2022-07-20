@@ -1,7 +1,7 @@
 package language.expressions
 
-import language.values.{Value, VariantValue}
-import language.{Environment, Pattern, Store, SumTy, Type, TypeAlias, UnitType, values}
+import language.values.Value
+import language._
 
 case class VariantExpression(label: String, expr: Expression, ty: Type) extends Expression {
   override def typecheck(env: Environment): Type = {
@@ -22,7 +22,11 @@ case class VariantExpression(label: String, expr: Expression, ty: Type) extends 
     label.equals(other.label) && expr.sameShapeAs(other.expr) && ty.equals(other.ty)
   }
 
-  override def substitute(variable: String, value: Value): Expression = VariantExpression(label, expr.substitute(variable, value), ty)
+  override def substitute(variable: String, value: Value): Expression =
+    VariantExpression(label, expr.substitute(variable, value), ty)
+
+  override def typeSubs(typeVar: String, ty: Type): Expression =
+    VariantExpression(label, expr.typeSubs(typeVar, ty), this.ty)
 }
 
 /**
@@ -56,6 +60,15 @@ case class PatternMatch(expression: Expression, cases: List[(Pattern, Expression
     )
   }
 
+  override def typeSubs(typeVar: String, ty: Type): Expression = {
+    PatternMatch(
+      expression.typeSubs(typeVar, ty),
+      cases.map({
+        case (patt, expr) => (patt, expr.typeSubs(typeVar, ty))
+      })
+    )
+  }
+
   override def checkSub(other: PatternMatch.this.type): Boolean = ???
 
   override def typecheck(env: Environment): Type = {
@@ -79,6 +92,7 @@ case class PatternMatch(expression: Expression, cases: List[(Pattern, Expression
 }
 
 
+/*
 /**
  * Gamma |- e : {l1:Tau1, l2: Tau2, ..., ln: Taun}
  * foreach i Gamma;x_i:Tau_i |- t_i : Tau
@@ -124,6 +138,8 @@ case class Match(expr: Expression, cases: Map[String, (String, Expression)]) ext
 
   override protected def checkSub(other: Match.this.type): Boolean = ???
 }
+
+ */
 
 
 

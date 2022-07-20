@@ -40,6 +40,7 @@ case class WithToken() extends Token
 case class WhileToken() extends Token
 case class DoToken() extends Token
 case class DefToken() extends Token
+case class BigLambdaToken() extends Token
 
 /**
  * Types

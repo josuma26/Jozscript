@@ -20,6 +20,8 @@ case class Var(variable: String) extends Expression {
     if (this.variable.equals(variable)) value else this
   }
 
+  override def typeSubs(typeVar: String, ty: Type): Expression = this
+
   override def sameShapeAs(other: Expression): Boolean = {
     true
   }

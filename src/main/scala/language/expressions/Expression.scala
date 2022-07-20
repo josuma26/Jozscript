@@ -24,7 +24,11 @@ trait Expression {
     }
   }
 
+  def typeSubs(typeVar: String, ty: Type): Expression
+
   protected def checkSub(other: this.type): Boolean
+
+
 
   def ensureHasType[T <: Expression](): T = {
     this match {
@@ -47,6 +51,10 @@ case class Sequence(s1: Expression, s2: Expression) extends Expression {
   override def typecheck(env: Environment): Type = {
     s1.typecheck(env)
     s2.typecheck(env)
+  }
+
+  override def typeSubs(typeVar: String, ty: Type): Expression = {
+    Sequence(s1.typeSubs(typeVar, ty), s2.typeSubs(typeVar, ty))
   }
 
   override def toString: String = s1.toString + ";\n" + s2.toString

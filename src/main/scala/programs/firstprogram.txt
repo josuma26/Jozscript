@@ -1,1 +1,4 @@
 
+def func(n:Nat): Bool := { n > 2};
+
+

@@ -5,6 +5,8 @@ class Environment {
 
   private val typeAliases = collection.mutable.Map[String, Type]()
 
+
+
   def get(name: String): Type = {
     val typeOpt = typeMap.get(name)
     if (typeOpt.isEmpty) {
@@ -33,6 +35,15 @@ class Environment {
       return typeAliases(name)
     }
     throw new IllegalArgumentException(s"No type alias for name: $name")
+  }
+
+  def isAlias(name: String): Boolean = typeAliases.contains(name)
+
+  def deleteAlias(name: String): Unit = {
+    if (!typeAliases.contains(name)) {
+      throw new IllegalArgumentException(s"No type alias for name: $name. Cannot delete")
+    }
+    typeAliases.remove(name)
   }
 
 

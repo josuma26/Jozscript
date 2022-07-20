@@ -7,6 +7,8 @@ trait Statement extends Expression {
 
   override def substitute(variable: String, value: Value): Statement
 
+  override def typeSubs(typeVar: String, ty: Type): Statement
+
   override protected def checkSub(other: Statement.this.type): Boolean = ???
 
 }
@@ -19,6 +21,8 @@ case class Skip() extends Statement {
   override def substitute(variable: String, value: Value): Statement = this
 
   override def toString: String = "skip"
+
+  override def typeSubs(typeVar: String, ty: Type): Statement = this
 }
 
 case class Assign(varName: String, value: Expression) extends Statement {
@@ -38,6 +42,10 @@ case class Assign(varName: String, value: Expression) extends Statement {
   }
 
   override def toString: String = "let " + varName + " := " + value.toString
+
+  override def typeSubs(typeVar: String, ty: Type): Statement = {
+    Assign(varName, value.typeSubs(typeVar, ty))
+  }
 }
 
 case class IfStatement(cond: Expression, e1: Statement, e2: Statement) extends Statement {
@@ -61,12 +69,20 @@ case class IfStatement(cond: Expression, e1: Statement, e2: Statement) extends S
     IfStatement(cond.substitute(variable, value), e1.substitute(variable, value), e2.substitute(variable, value))
   }
 
+  override def typeSubs(typeVar: String, ty: Type): Statement = {
+    IfStatement(cond.typeSubs(typeVar, ty), e1.typeSubs(typeVar, ty), e2.typeSubs(typeVar, ty))
+  }
+
   override def toString: String = "if (" + cond.toString + ") {\n\t" + e1.toString + "\n} else {\n\t" + e2.toString + "}"
 }
 
 case class WhileLoop(cond: Expression, body: Expression) extends Statement {
   override def substitute(variable: String, value: Value): Statement = {
     WhileLoop(cond.substitute(variable, value), body.substitute(variable,value))
+  }
+
+  override def typeSubs(typeVar: String, ty: Type): Statement = {
+    WhileLoop(cond.typeSubs(typeVar, ty), body.typeSubs(typeVar, ty))
   }
 
   override def evaluate(store: Store): Value = {
@@ -90,6 +106,8 @@ case class WhileLoop(cond: Expression, body: Expression) extends Statement {
 case class TypeDefinition(name: String, ty: Type) extends Statement {
   override def substitute(variable: String, value: Value): Statement = this
 
+  override def typeSubs(typeVar: String, ty: Type): Statement = this
+
   override def evaluate(store: Store): Value = UnitVal()
 
   override def typecheck(env: Environment): Type = {
@@ -105,6 +123,12 @@ case class FunctionDefinition(name: String, args:Map[String, Type], retTy: Type,
     } else {
       FunctionDefinition(name, args, retTy,  body.substitute(variable, value))
     }
+  }
+
+  override def typeSubs(typeVar: String, ty: Type): Statement = {
+    FunctionDefinition(name, args.map({case (l, t) => (l, t.substitute(typeVar, ty))}),
+      retTy.substitute(typeVar, ty),
+      body.typeSubs(typeVar, ty))
   }
 
   override def evaluate(store: Store): Value = {

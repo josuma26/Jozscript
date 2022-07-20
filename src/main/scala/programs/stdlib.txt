@@ -1,0 +1,32 @@
+
+type List := {Nil:Unit, Cons:[Nat*List]};
+
+let empty := Nil:unit as List;
+let singleton := lambda x:Nat, Cons:[x, empty] as List;
+let cons := lambda x:Nat, lambda l:List, Cons:[x,l] as List;
+
+def append(l1: List, l2: List): List := {
+    match l1 with {
+        | empty => l2
+        | Cons:[x,l] => cons(x)(append(l)(l2))
+    }
+};
+
+def map(l: List, func: (Nat -> Nat)): List := {
+    match l with {
+        | empty => empty
+        | Cons:[first, rest] => cons(func(first))(map(rest)(func))
+    }
+};
+
+def filter(l: List, pred: (Nat -> Bool)): List := {
+    match l with {
+        | empty => empty
+        | Cons:[first, rest] => match pred(first) with {
+            | true => cons(first)(filter(rest)(pred))
+            | false => filter(rest)(pred)
+        }
+    }
+};
+
+def add1ToAll(l: List): List := { map(l)(lambda x:Nat, x + 1) }

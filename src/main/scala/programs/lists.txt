@@ -11,12 +11,15 @@ def map(list: List, func: (Nat -> Nat)): List := {
     }
 };
 
+
 def generateList(n: Nat, func: (Nat -> Nat)): List := {
     match n with {
         | 0 => nil:unit as List
         | i => cons:[func(i), generateList(i-1)(func)] as List
     }
 };
+
+def identity(n: Nat): Nat := { n };
 
 def fibonacci(n: Nat): Nat := {
     match n with {
@@ -26,5 +29,5 @@ def fibonacci(n: Nat): Nat := {
     }
 };
 
-fibonacci(15)
+map(generateList(10)(identity))(fibonacci)
 
