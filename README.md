@@ -1,6 +1,9 @@
 # Jozscript
 Played around and made a programming language.
 
+main function will execute a program (written as a .txt file). Working on project structure to allow imports and other fancy stuff.
+Basic list functions are in lists.txt
+
 Implementaiton is based on PL literature I've read, but I tried to make the syntax as modern as possible.
 
 Types:
