@@ -5,7 +5,7 @@ import language._
 
 case class VariantExpression(label: String, expr: Expression, ty: Type) extends Expression {
   override def typecheck(env: Environment): Type = {
-    val optTy = ty.getIfAlias(env).ensureIsType[SumTy].types.get(label)
+    val optTy = ty.getIfAlias(env).ensureIsType[SumTy](env).types.get(label)
     if (optTy.isEmpty) {
       throw new IllegalArgumentException(s"$label not a type in $ty")
     }

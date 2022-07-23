@@ -1,4 +1,2 @@
 
-def func(n:Nat): Bool := { n > 2};
-
-
+type f := Nat -> Bool -> Nat

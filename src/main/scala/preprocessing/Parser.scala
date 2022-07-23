@@ -100,16 +100,24 @@ object Parser {
       case VariableToken(varName) => parseAfterType(func, TypeAlias(varName))
       case OCurly() => sumTypeGenerator(func, mutable.Map(), None)
       case OParen() => TypeGenerator(ty => FromToken(matchTokenThen[CParen](_)(_ => {
-        func(ty)
+        parseAfterType(func, ty)
       })))
+      case ForallToken() => FromToken(matchTokenThen[VariableToken](_)(name => {
+        FromToken(matchTokenThen[Comma](_)(_ => TypeGenerator(ty => {
+          parseAfterType(func, UniversalType(name.name, ty))
+        })))
+      }))
       case OBracket() => productTypeGenerator(func, ListBuffer())
     }
   }
 
   def parseAfterType(func: Type => Generator, ty: Type, token: Token): Generator = {
     token match {
-      case Arrow() => TypeGenerator(nextTy => func(FuncTy(ty, nextTy)))
+      case Arrow() => TypeGenerator(nextTy => parseAfterType(func, FuncTy(ty, nextTy)))
       case NumCompOpOP(symbol) if symbol.equals("*") => productTypeGenerator(func, ListBuffer(ty))
+      case OBracket() => TypeGenerator(nextTy => FromToken(matchTokenThen[CBracket](_)(_ => {
+        func(UnivTypeInstant(ty, nextTy))
+      })))
       case _ => parseOne(func(ty), token)
     }
   }
@@ -145,29 +153,46 @@ object Parser {
     }))))
 
   private def defFunctionGen(afterGen: Expression => Generator): Generator = {
-    FromToken(matchTokenThen[VariableToken](_)(varName => FromToken(matchTokenThen[OParen](_)( _ => {
-      defFunctionGen(afterGen, varName.name, mutable.Map(), None)
-    }))))
+    FromToken(matchTokenThen[VariableToken](_)(varName => FromToken(tok => {
+      if (tok.equals(OBracket())) {
+        typeListGen(afterGen, varName.name, new ListBuffer())
+      } else {
+        matchTokenThen[OParen](tok)( _ => {
+          defFunctionGen(afterGen, varName.name, List(), ListBuffer(), None)
+        })
+      }
+    })))
   }
 
-  private def defFunctionGen(afterGen: Expression => Generator, funcName: String,
-                             args: mutable.Map[String, Type], argName: Option[String]): Generator = {
+  private def typeListGen(afterGen: Expression => Generator, varName: String, types: ListBuffer[String]): Generator = {
     FromToken {
-      case Comma() => defFunctionGen(afterGen, funcName, args, argName)
-      case VariableToken(name) if argName.isEmpty => defFunctionGen(afterGen, funcName, args, Some(name))
+      case Comma() => typeListGen(afterGen, varName, types)
+      case CBracket() => FromToken(matchTokenThen[OParen](_)( _ => {
+        defFunctionGen(afterGen, varName, types.toList.reverse, ListBuffer(), None)
+      }))
+      case VariableToken(name) => typeListGen(afterGen, varName, types += name)
+      case token => throw new IllegalArgumentException(s"Unexpected token $token")
+    }
+  }
+
+  private def defFunctionGen(afterGen: Expression => Generator, funcName: String, types: List[String],
+                             args: ListBuffer[(String, Type)], argName: Option[String]): Generator = {
+    FromToken {
+      case Comma() => defFunctionGen(afterGen, funcName, types,  args, argName)
+      case VariableToken(name) if argName.isEmpty => defFunctionGen(afterGen, funcName, types, args, Some(name))
       case VariableToken(name) =>
-        parseAfterType(ty => defFunctionGen(afterGen, funcName, args += (argName.get -> ty), None) , TypeAlias(name))
+        parseAfterType(ty => defFunctionGen(afterGen, funcName, types, args.addOne((argName.get, ty)), None) , TypeAlias(name))
       case Colon() if argName.nonEmpty =>
-        parseType(ty => defFunctionGen(afterGen, funcName, args += (argName.get -> ty), None))
+        parseType(ty => defFunctionGen(afterGen, funcName, types, args += ((argName.get,  ty)), None))
       case CParen() => FromToken(matchTokenThen[Colon](_)(_ => TypeGenerator(retTy => {
         FromToken(matchTokenThen[AssignToken](_)( _ => FromToken(matchTokenThen[OCurly](_)(_ => {
           ExpressionGenerator(expr => FromToken(matchTokenThen[CCurly](_)(_ => {
-            afterGen(FunctionDefinition(funcName, args.toMap, retTy, expr))
+            afterGen(FunctionDefinition(funcName, types, args.toMap, retTy, expr))
           })))
         }))))
       })))
       case token if argName.nonEmpty =>
-        parseType(ty => defFunctionGen(afterGen, funcName, args += (argName.get -> ty), None), token)
+        parseType(ty => defFunctionGen(afterGen, funcName, types, args += (argName.get -> ty), None), token)
       case token => throw new IllegalArgumentException(s"Unexpected token. Found: $token")
 
     }

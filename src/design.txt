@@ -1,17 +1,12 @@
-Need:
-- Enhance language with sums, products (including pattern matching and projections)
-- Adding recursive functions, types
-- Adding subtyping, polymorphism
-- Statements
-- Hoare logic
-- Theorem proving for generated theorems
-- Lexing, parsing
+Next steps:
+    - Add generics to functions
+    - Add structs
+    * Should write tests and documentation before refactoring parser
+    - Refactor parser
+    - Add Hoare logic
+    - Parse logic
+    - Print out proof obligations to import to coa
+    - Prove theorems inline
 
-let x: Bool := ...
-match x with {
-    | true => true
-    | false => false
-type Tree<T> :=
-    | leaf: Tree<T>
-    | node: T -> Tree<T> -> Tree<T> -> Tree<T>
+
 

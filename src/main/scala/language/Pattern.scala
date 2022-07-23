@@ -1,7 +1,7 @@
 package language
 
-import language.expressions.{App, Expression, TupleExpression, Var}
-import language.values.{Bool, Func, Num, TupleValue, UnitVal, Value, VariantValue}
+import language.expressions.{Expression, TupleExpression, TypeApp, Var}
+import language.values._
 
 /**
  * For pattern matching on values
@@ -60,7 +60,7 @@ case class LabelBinderPattern(label: String, binder: Pattern) extends Pattern {
   }
 
   override def typeCheckBound(expr: Expression, env: Environment, valueType: Type): Type = {
-    val optTy = valueType.getIfAlias(env).ensureIsType[SumTy].types.get(label)
+    val optTy = valueType.getIfAlias(env).ensureIsType[SumTy](env).types.get(label)
     if (optTy.isEmpty) {
       throw new IllegalArgumentException(s"$label not a constructor.")
     }
@@ -113,12 +113,13 @@ case class ExpressionPattern(patternValue: Expression) extends Pattern {
       case TupleExpression(exprs) => bindTuple(exprs, env, valueType)
       case Var(varName) => env.bind(varName, valueType)
       case VariantValue(label, value, _) => ???
+      case TypeApp(e, ty) => bindFreeVariables(e, env, valueType)
       case pa => throw new IllegalArgumentException(s"Invalid pattern $pa")
     }
   }
 
   private def bindTuple(values: List[Expression], env: Environment, valueType: Type): Unit = {
-    val tupleTypes = valueType.ensureIsType[ProductTy].types
+    val tupleTypes = valueType.ensureIsType[ProductTy](env).types
     if (values.length != tupleTypes.length) {
       throw new IllegalArgumentException("Value cardinality mismath. This branch should not have matched.")
     }
@@ -134,6 +135,7 @@ case class ExpressionPattern(patternValue: Expression) extends Pattern {
       case TupleExpression(values) => values.indices.foreach(index => unbindFreeVariables(values(index), env))
       case Var(varName) => env.unbind(varName)
       case VariantValue(label, value, _) => ???
+      case TypeApp(e, ty) => unbindFreeVariables(e, env)
     }
   }
 

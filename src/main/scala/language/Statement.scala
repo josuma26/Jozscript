@@ -1,7 +1,7 @@
 package language
 
 import language.expressions.Expression
-import language.values.{Bool, UnitVal, Value, Func}
+import language.values.{Bool, Func, TypeAbstraction, UnitVal, Value}
 
 trait Statement extends Expression {
 
@@ -51,7 +51,7 @@ case class Assign(varName: String, value: Expression) extends Statement {
 case class IfStatement(cond: Expression, e1: Statement, e2: Statement) extends Statement {
 
   override def typecheck(env: Environment): Type = {
-    cond.typecheck(env).ensureIsType[BoolType]
+    cond.typecheck(env).ensureIsType[BoolType](env)
     e1.typecheck(env)
     e2.typecheck(env)
   }
@@ -95,7 +95,7 @@ case class WhileLoop(cond: Expression, body: Expression) extends Statement {
   }
 
   override def typecheck(env: Environment): Type = {
-    cond.typecheck(env).ensureIsType[BoolType]
+    cond.typecheck(env).ensureIsType[BoolType](env)
     body.typecheck(env)
     UnitType()
   }
@@ -116,36 +116,42 @@ case class TypeDefinition(name: String, ty: Type) extends Statement {
   }
 }
 
-case class FunctionDefinition(name: String, args:Map[String, Type], retTy: Type, body: Expression) extends Statement {
+case class FunctionDefinition(name: String, typeVars: List[String],
+                              args:Map[String, Type], retTy: Type, body: Expression) extends Statement {
   override def substitute(variable: String, value: Value): Statement = {
     if (args.keySet.contains(variable)) {
       this
     } else {
-      FunctionDefinition(name, args, retTy,  body.substitute(variable, value))
+      FunctionDefinition(name, typeVars, args, retTy,  body.substitute(variable, value))
     }
   }
 
   override def typeSubs(typeVar: String, ty: Type): Statement = {
-    FunctionDefinition(name, args.map({case (l, t) => (l, t.substitute(typeVar, ty))}),
+    FunctionDefinition(name,
+      typeVars,
+      args.map({case (l, t) => (l, t.substitute(typeVar, ty))}),
       retTy.substitute(typeVar, ty),
       body.typeSubs(typeVar, ty))
   }
 
   override def evaluate(store: Store): Value = {
-    val curried = curry(args.keySet.toList, body).evaluate(store)
-    store.save(name, curried)
+    var curried = curry(args.keySet.toList.reverse, body)
+    typeVars.foreach(typeVar => curried = TypeAbstraction(typeVar, curried))
+    store.save(name, curried.evaluate(store))
     UnitVal()
   }
 
-  /*
-    How to type check recursive functions?
 
-    def length(l: List):
-   */
   override def typecheck(env: Environment): Type = {
-    val curriedType = curriedArguments(args.keySet.toList, retTy)
+    var curriedType = curriedArguments(args.keySet.toList.reverse, retTy)
+    var curried = curry(args.keySet.toList.reverse, body)
+
+    typeVars.foreach(typeVar => {
+      curriedType = UniversalType(typeVar, curriedType)
+      curried = TypeAbstraction(typeVar, curried)
+    })
+
     env.bind(name, curriedType)
-    val curried = curry(args.keySet.toList, body)
     curried.typecheck(env)
     UnitType()
   }

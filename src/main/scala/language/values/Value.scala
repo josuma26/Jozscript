@@ -97,7 +97,7 @@ case class TupleValue(values: List[Value]) extends Value {
 
 case class VariantValue(label: String, value: Value, ty: Type) extends Value {
   override def typecheck(env: Environment): Type = {
-    val optTy = ty.getIfAlias(env).ensureIsType[SumTy].types.get(label)
+    val optTy = ty.getIfAlias(env).ensureIsType[SumTy](env).types.get(label)
     if (optTy.isEmpty) {
       throw new IllegalArgumentException(s"$label not a type in $ty")
     }
@@ -109,11 +109,11 @@ case class VariantValue(label: String, value: Value, ty: Type) extends Value {
   }
 
   override def substitute(variable: String, value: Value): Value = {
-    VariantValue(label, value.substitute(variable, value), ty)
+    VariantValue(label, this.value.substitute(variable, value), ty)
   }
 
   override def typeSubs(typeVar: String, ty: Type): Value = {
-    VariantValue(label, value.typeSubs(typeVar, ty),this.ty.substitute(typeVar, ty))
+    VariantValue(label, this.value.typeSubs(typeVar, ty),this.ty.substitute(typeVar, ty))
   }
 
   override protected def checkSub(other: VariantValue.this.type): Boolean = {
@@ -133,6 +133,10 @@ case class TypeAbstraction(typeArg: String, body: Expression) extends Value {
     } else {
       TypeAbstraction(typeArg, body.typeSubs(typeVar, ty))
     }
+  }
+
+  def substitute(ty: Type): Expression = {
+    body.typeSubs(typeArg, ty)
   }
 
   /**

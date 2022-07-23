@@ -18,7 +18,7 @@ case class TypeApp(e: Expression, ty: Type) extends Expression {
   }
 
   override def typecheck(env: Environment): Type = {
-    val exprTy = e.typecheck(env).ensureIsType[UniversalType]
+    val exprTy = e.typecheck(env).ensureIsType[UniversalType](env)
     exprTy.ty.substitute(exprTy.typeVar, ty)
   }
 

@@ -64,6 +64,7 @@ object Lexer {
     ExactMatch("type", TypeToken()),
     ExactMatch("def", DefToken()),
     ExactMatch("Lambda", BigLambdaToken()),
+    ExactMatch("forall", ForallToken()),
     ExactMatch("|", Pipe())
   )
 

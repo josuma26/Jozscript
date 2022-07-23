@@ -1,33 +1,54 @@
 
-type List := {nil: Unit, cons:[Nat*List]};
-let empty := nil:unit as List;
+type List := forall T, {nil: Unit, cons:[T*List[T]]};
+let empty := Lambda T,  nil:unit as List[T];
+let cons := Lambda T, lambda x:T, lambda L:List[T], cons:[x, L] as List[T];
 
-def singleton(n: Nat): List := { cons:[n, empty] as List };
+def append[T](l1: List[T], l2: List[T]): List[T] := {
+    match l1 with {
+        | nil:u => l2
+        | cons:[first, rest] => cons[T](first)(append[T](rest)(l2))
+    }
+};
 
-def map(list: List, func: (Nat -> Nat)): List := {
+def contains[T](list: List[T], x: T, eq: T -> T -> Bool): Bool := {
     match list with {
-        | cons:[first, rest] => cons:[func(first), map(rest)(func)] as List
-        | n => n
+        | nil:u => false
+        | cons:[first, rest] => eq(first)(x) || contains[T](rest)(x)(eq)
     }
 };
 
-
-def generateList(n: Nat, func: (Nat -> Nat)): List := {
+def generateList[T](n:Nat, f:(Nat -> T)): List[T] := {
     match n with {
-        | 0 => nil:unit as List
-        | i => cons:[func(i), generateList(i-1)(func)] as List
+        | 0 => empty[T]
+        | i => cons:[f(i), generateList[T](i - 1)(f)] as List[T]
     }
 };
 
-def identity(n: Nat): Nat := { n };
-
-def fibonacci(n: Nat): Nat := {
-    match n with {
-        | 0 => 0
-        | 1 => 1
-        | n => fibonacci(n-2) + fibonacci(n-1)
+def len[T](list: List[T]): Nat := {
+    match list with {
+        | nil:u => 0
+        | cons:[first, rest] => 1 + len[T](rest)
     }
 };
 
-map(generateList(10)(identity))(fibonacci)
+def map[T, R](list: List[T], func:(T -> R)): List[R] := {
+    match list with {
+        | nil:u => empty[R]
+        | cons:[first, rest] => cons[R](func(first))(map[T][R](rest)(func))
+    }
+};
+
+def foldr[T, R](list: List[T], base: R, func: T -> R -> R): R := {
+    match list with {
+        | nil:u => base
+        | cons:[first, rest] => func(first)(foldr[T][R](rest)(base)(func))
+    }
+};
+
+def sumAll(list: List[Nat]): Nat := {
+    foldr[Nat][Nat](list)(0)(lambda x:Nat, lambda y:Nat, x + y)
+}
+
+
+
 

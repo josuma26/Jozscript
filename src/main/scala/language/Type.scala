@@ -1,7 +1,7 @@
 package language
 
 sealed trait Type {
-  def ensureIsType[T <: Type]: T = {
+  def ensureIsType[T <: Type](env: Environment): T = {
     this match {
       case ty: T => ty
       case _ => throw new IllegalArgumentException("")
@@ -112,6 +112,28 @@ case class UniversalType(typeVar: String, ty: Type) extends Type {
   }
 
   override def toString: String = "forall " + typeVar + ", " + ty.toString
+}
+
+case class UnivTypeInstant(univ: Type, instant: Type) extends Type {
+  override protected def innerEqual(other: UnivTypeInstant.this.type, environment: Environment): Boolean = {
+    val thisAsUniv = univ.getIfAlias(environment).ensureIsType[UniversalType](environment)
+    val otherAsUniv = other.univ.getIfAlias(environment).ensureIsType[UniversalType](environment)
+    thisAsUniv.ty.substitute(thisAsUniv.typeVar, this.instant).eq(
+      otherAsUniv.ty.substitute(otherAsUniv.typeVar, other.instant), environment
+    )
+  }
+
+  override def substitute(name: String, ty: Type): Type = {
+    UnivTypeInstant(univ.substitute(name, ty), instant.substitute(name, ty))
+  }
+
+  override def ensureIsType[T <: Type](env: Environment): T = {
+    val asUniv = univ.getIfAlias(env).ensureIsType[UniversalType](env)
+    asUniv.ty.substitute(asUniv.typeVar, instant).ensureIsType[T](env)
+  }
+
+  override def toString: String = univ.toString + "[" + instant.toString + "]"
+
 }
 
 

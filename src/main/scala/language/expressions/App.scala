@@ -19,12 +19,12 @@ case class App(e1: Expression, e2: Expression) extends Expression {
   }
 
   override def typecheck(env: Environment): Type = {
-    val funcType = e1.typecheck(env).ensureIsType[FuncTy]
+    val funcType = e1.typecheck(env).ensureIsType[FuncTy](env)
     val argType = e2.typecheck(env)
     if (funcType.argTy.eq(argType, env)) {
       return funcType.retType
     }
-    throw new IllegalArgumentException(s"Expected argument $e2 to have type ${funcType.argTy}")
+    throw new IllegalArgumentException(s"Expected argument $e2 to have type ${funcType.argTy}. Found $argType")
   }
 
   override def substitute(variable: String, value: Value): Expression = {

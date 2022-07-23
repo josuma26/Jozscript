@@ -5,7 +5,7 @@ import language.{Environment, Store, Type}
 
 object main {
   def main(args: Array[String]): Unit = {
-    fromFile("src/main/scala/programs/firstprogram.txt")
+    fromFile("src/main/scala/programs/trees.txt")
     //fromFile("src/main/scala/programs/lists.txt")
   }
 

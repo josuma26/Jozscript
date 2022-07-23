@@ -48,6 +48,7 @@ case class BigLambdaToken() extends Token
 case class BoolTypeToken() extends Token
 case class NatTypeToken() extends Token
 case class UnitTypeToken() extends Token
+case class ForallToken() extends Token
 
 case class EOLToken() extends Token
 
