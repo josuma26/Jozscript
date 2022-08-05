@@ -5,8 +5,17 @@ Next steps:
     - Refactor parser
     - Add Hoare logic
     - Parse logic
-    - Print out proof obligations to import to coa
+    - Print out proof obligations to import to coq
     - Prove theorems inline
+
+Enhancements:
+- automatically generate simplifications for variant definitins (e.g. let empty := Lambda T, nil:unit as List[T])
+- uncurry functions implicitly (f(1)(2)(3) should be f(1,2,3))
+- add imports
+
+class ClassName[T, ...](field1: Type, field2: Type) {
+
+}
 
 
 

@@ -1,7 +1,7 @@
 package language
 
 import language.expressions.Expression
-import language.values.{Bool, Func, TypeAbstraction, UnitVal, Value}
+import language.values._
 
 trait Statement extends Expression {
 
@@ -38,7 +38,7 @@ case class Assign(varName: String, value: Expression) extends Statement {
   }
 
   override def substitute(variable: String, value: Value): Statement = {
-    Assign(varName, value.substitute(variable, value))
+    Assign(varName, this.value.substitute(variable, value))
   }
 
   override def toString: String = "let " + varName + " := " + value.toString

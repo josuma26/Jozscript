@@ -1,2 +1,0 @@
-
-type f := Nat -> Bool -> Nat

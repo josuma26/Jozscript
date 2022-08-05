@@ -1,8 +1,8 @@
 package preprocessing
 
+import language._
 import language.expressions._
 import language.values.{Bool, Num, TypeAbstraction, UnitVal}
-import language._
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
@@ -32,6 +32,7 @@ object Parser {
     gen match {
       case ExpressionGenerator(func) => parseExpression(func, token)
       case FromToken(func) => func(token)
+      case Expr(expr) if token == SemiColon() => ExpressionGenerator(nextExpr => Expr(Sequence(expr, nextExpr)))
       case Expr(expr) => parseAfterExpression(e=> Expr(e), expr, token)
       case TypeGenerator(func) => parseType(func, token)
     }
@@ -48,6 +49,7 @@ object Parser {
       case OParen() => ExpressionGenerator(expr => FromToken(nextToken => {
         matchTokenThen[CParen](nextToken)(_ => parseAfterExpression(func, expr))
       }))
+      case OCurly() => curlySequenceGen(func)
       case MatchToken() => matchGenerator(func)
       case OBracket() => tupleGenerator(func, ListBuffer())
       case WhileToken() => whileGenerator(func)
@@ -71,7 +73,6 @@ object Parser {
       case NumBinOpOp(symbol) => ExpressionGenerator(nextExpr => func(NumBinOp(symbol, expr, nextExpr)))
       case BoolBinOpOP(symbol) => ExpressionGenerator(nextExpr => func(BoolBinOp(symbol, expr, nextExpr)))
       case NumCompOpOP(symbol) => ExpressionGenerator(nextExpr => func(NumCompOP(symbol, expr, nextExpr)))
-      case SemiColon() => ExpressionGenerator(nextExpr => func(Sequence(expr, nextExpr)))
       case Period() => FromToken(token => matchTokenThen[Number](token)(num => {
         parseAfterExpression(func,Projection(expr, num.value))
       }))
@@ -80,7 +81,6 @@ object Parser {
         case _ => throw new IllegalArgumentException("Other uses of ':' not yet supported.")
       }
       case EOLToken() => func(expr)
-      case SemiColon() => ExpressionGenerator(nextExpr => func(Sequence(expr, nextExpr)))
       case _ => parseOne(func(expr), token)
     }
   }
@@ -120,6 +120,14 @@ object Parser {
       })))
       case _ => parseOne(func(ty), token)
     }
+  }
+
+  private def curlySequenceGen(afterGen: Expression => Generator): Generator = {
+    ExpressionGenerator(expr => FromToken {
+      case CCurly() => afterGen(expr)
+      case SemiColon() => curlySequenceGen(nextExpr => afterGen(Sequence(expr, nextExpr)))
+      case token => throw new IllegalArgumentException(s"Unepected $token")
+    })
   }
 
   private def productTypeGenerator(afterGen: Type => Generator, types: ListBuffer[Type]): Generator =
@@ -185,11 +193,9 @@ object Parser {
       case Colon() if argName.nonEmpty =>
         parseType(ty => defFunctionGen(afterGen, funcName, types, args += ((argName.get,  ty)), None))
       case CParen() => FromToken(matchTokenThen[Colon](_)(_ => TypeGenerator(retTy => {
-        FromToken(matchTokenThen[AssignToken](_)( _ => FromToken(matchTokenThen[OCurly](_)(_ => {
-          ExpressionGenerator(expr => FromToken(matchTokenThen[CCurly](_)(_ => {
-            afterGen(FunctionDefinition(funcName, types, args.toMap, retTy, expr))
-          })))
-        }))))
+        FromToken(matchTokenThen[AssignToken](_)(_ => ExpressionGenerator(expr => {
+          afterGen(FunctionDefinition(funcName, types, args.toMap, retTy, expr))
+        })))
       })))
       case token if argName.nonEmpty =>
         parseType(ty => defFunctionGen(afterGen, funcName, types, args += (argName.get -> ty), None), token)

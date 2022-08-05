@@ -42,6 +42,8 @@ case class DoToken() extends Token
 case class DefToken() extends Token
 case class BigLambdaToken() extends Token
 
+case class ImportToken() extends Token
+
 /**
  * Types
  */

@@ -1,13 +1,11 @@
 
-type Tree := forall T, {leaf:T, node:[T*Tree[T]*Tree[T]]};
-
-let ltLeaf := leaf:2 as Tree[Nat];
-let gtLeaf := leaf:5 as Tree[Nat];
-let treeEx := node:[3, ltLeaf, gtLeaf] as Tree[Nat];
+type Tree := forall T, {leaf:Unit, node:[T*Tree[T]*Tree[T]]};
+let leaf := Lambda T, leaf:unit as Tree[T];
+let node:= Lambda T, lambda x:T, lambda left:Tree[T], lambda right: Tree[T], node:[x,left,right] as Tree[T];
 
 def treePred[T](tree: Tree[T], pred: T -> Bool): Bool := {
     match tree with {
-        | leaf:t => pred(t)
+        | leaf:t => true
         | node:[val, left, right] => pred(val) && treePred[T](left)(pred) && treePred[T](right)(pred)
     }
 };
@@ -23,7 +21,37 @@ def isBST[T](tree: Tree[T], isLessThan: T -> T -> Bool): Bool := {
     }
 };
 
+def insert[T](tree: Tree[T], x: T, isLessThan: T -> T -> Bool): Tree[T] := {
+    match tree with {
+        | leaf: t => node[T](x)(tree)(tree)
+        | node:[val, left, right] => match isLessThan(val)(x) with {
+            | false => node[T](val)(left)(insert[T](right)(x)(isLessThan))
+            | true => node[T](val)(insert[T](left)(x)(isLessThan))(right)
+        }
+    }
+};
+
 (let numcomp := lambda x:Nat, lambda y:Nat, x < y);
 
-isBST[Nat](treeEx)(numcomp)
+(let treeEx := node[Nat](3)(node[Nat](2)(leaf[Nat])(leaf[Nat]))(node[Nat](4)(leaf[Nat])(leaf[Nat])));
+
+type List := forall T, {nil: Unit, cons:[T*List[T]]};
+let empty := Lambda T,  nil:unit as List[T];
+let cons := Lambda T, lambda x:T, lambda L:List[T], cons:[x, L] as List[T];
+
+def append[T](l1: List[T], l2: List[T]): List[T] := {
+    match l1 with {
+        | nil:u => l2
+        | cons:[first, rest] => cons[T](first)(append[T](rest)(l2))
+    }
+};
+
+def tree2list[T](tree: Tree[T]): List[T] := {
+    match tree with {
+        | leaf:t => empty[T]
+        | node:[v, left, right] => cons[T](v)(append[T](tree2list[T](left))(tree2list[T](right)))
+    }
+};
+
+tree2list[Nat](insert[Nat](treeEx)(5)(numcomp))
 
