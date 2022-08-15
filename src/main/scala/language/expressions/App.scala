@@ -31,6 +31,10 @@ case class App(e1: Expression, e2: Expression) extends Expression {
     App(e1.substitute(variable, value), e2.substitute(variable, value))
   }
 
+  override def replace(variable: String, value: Expression): Expression = {
+    App(e1.replace(variable, value), e2.replace(variable, value))
+  }
+
   override def typeSubs(typeVar: String, ty: Type): Expression = {
     App(e1.typeSubs(typeVar, ty), e2.typeSubs(typeVar, ty))
   }

@@ -1,5 +1,6 @@
 package language.expressions
 
+import hoarelogic.logic.{Implies, Proposition}
 import language._
 import language.values.Value
 
@@ -14,7 +15,13 @@ trait Expression {
 
   def substitute(variable: String, value: Value): Expression
 
+  def replace(variable: String, expr: Expression): Expression
+
   def typecheck(env: Environment): Type
+
+  def proofObligation(pre: Proposition, post: Proposition): Proposition = Implies(pre, post)
+
+  def pushThrough(pre: Proposition): Proposition = pre
 
   def sameShapeAs(other: Expression): Boolean = {
     if (this.getClass.equals(other.getClass)) {
@@ -28,15 +35,12 @@ trait Expression {
 
   protected def checkSub(other: this.type): Boolean
 
-
-
   def ensureHasType[T <: Expression](): T = {
     this match {
       case e: T => e
       case _ => throw new IllegalStateException(s"Expected $this to be of a different tyoe.")
     }
   }
-
 }
 
 case class Sequence(s1: Expression, s2: Expression) extends Expression {
@@ -46,6 +50,17 @@ case class Sequence(s1: Expression, s2: Expression) extends Expression {
 
   override def substitute(variable: String, value: Value): Expression = {
     Sequence(s1.substitute(variable, value), s2.substitute(variable, value))
+  }
+
+  override def replace(variable: String, value: Expression): Expression = {
+    Sequence(s1.replace(variable, value), s2.replace(variable, value))
+  }
+
+  override def proofObligation(pre: Proposition, post: Proposition): Proposition = {
+    s2.proofObligation(s1.pushThrough(pre), post)
+  }
+  override def pushThrough(pre: Proposition): Proposition = {
+    s2.pushThrough(s1.pushThrough(pre))
   }
 
   override def typecheck(env: Environment): Type = {

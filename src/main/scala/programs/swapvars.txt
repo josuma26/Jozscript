@@ -3,6 +3,5 @@ let a := 10;
 let b := 5;
 let a:= a + b;
 let b:= a - b;
-let a := a - b;
+let a := a - b
 
-[a,b]

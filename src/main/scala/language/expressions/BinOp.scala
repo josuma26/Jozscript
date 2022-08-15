@@ -34,7 +34,7 @@ abstract class BinOp[T, R, V <: Value, V2 <: Value](op: String, e1: Expression, 
 
   def convertFrom(v: R): V2
 
-  override def toString: String = e1.toString + " " + op + " " + e2.toString
+  override def toString: String = "(" + e1.toString + " " + op + " " + e2.toString + ")"
 }
 
 
@@ -51,6 +51,10 @@ case class NumBinOp(op: String,e1: Expression,  e2: Expression) extends
 
   override def substitute(variable: String, value: Value): Expression = {
     NumBinOp(op, e1.substitute(variable, value), e2.substitute(variable, value))
+  }
+
+  override def replace(variable: String, value: Expression): Expression = {
+    NumBinOp(op, e1.replace(variable, value), e2.replace(variable, value))
   }
 
   override def typeSubs(typeVar: String, ty: Type): Expression = {
@@ -72,6 +76,10 @@ case class BoolBinOp(op: String, e1: Expression, e2: Expression) extends
 
   override def substitute(variable: String, value: Value): Expression = {
     BoolBinOp(op, e1.substitute(variable, value), e2.substitute(variable, value))
+  }
+
+  override def replace(variable: String, value: Expression): Expression = {
+    BoolBinOp(op, e1.replace(variable, value), e2.replace(variable, value))
   }
 
   override def typeSubs(typeVar: String, ty: Type): Expression = {
@@ -97,6 +105,10 @@ case class NumCompOP(op: String, e1: Expression, e2:Expression) extends
 
   override def substitute(variable: String, value: Value): Expression = {
     NumCompOP(op, e1.substitute(variable, value), e2.substitute(variable, value))
+  }
+
+  override def replace(variable: String, value: Expression): Expression = {
+    NumCompOP(op, e1.replace(variable, value), e2.replace(variable, value))
   }
 
   override def typeSubs(typeVar: String, ty: Type): Expression = {

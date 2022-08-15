@@ -1,12 +1,14 @@
 package language.values
 
 import language._
-import language.expressions.{Expression, TupleExpression}
+import language.expressions.{Expression, TupleExpression, VariantExpression}
 
 trait Value extends Expression {
   override def evaluate(store: Store): Value = this
 
   override def substitute(variable: String, value: Value): Value = this
+
+  override def replace(variable: String, expr: Expression): Expression = this
 
   override def typeSubs(typeVar: String, ty: Type): Value = this
 
@@ -16,6 +18,14 @@ case class Func(arg: String, ty: Type, body: Expression) extends Value {
   override def substitute(variable: String, value: Value): Value = {
     if (!arg.equals(variable)) {
       Func(arg, ty, body.substitute(variable, value))
+    } else {
+      this
+    }
+  }
+
+  override def replace(variable: String, value: Expression): Value = {
+    if (!arg.equals(variable)) {
+      Func(arg, ty, body.replace(variable, value))
     } else {
       this
     }
@@ -69,6 +79,10 @@ case class TupleValue(values: List[Value]) extends Value {
     TupleValue(values.map(_.substitute(variable, value)))
   }
 
+  override def replace(variable: String, value: Expression): Expression = {
+    TupleExpression(values.map(_.replace(variable, value)))
+  }
+
   override def typeSubs(typeVar: String, ty: Type): Value = {
     TupleValue(values.map(_.typeSubs(typeVar, ty)))
   }
@@ -112,6 +126,10 @@ case class VariantValue(label: String, value: Value, ty: Type) extends Value {
     VariantValue(label, this.value.substitute(variable, value), ty)
   }
 
+  override def replace(variable: String, value: Expression): Expression = {
+    VariantExpression(label, this.value.replace(variable, value), ty)
+  }
+
   override def typeSubs(typeVar: String, ty: Type): Value = {
     VariantValue(label, this.value.typeSubs(typeVar, ty),this.ty.substitute(typeVar, ty))
   }
@@ -125,6 +143,10 @@ case class TypeAbstraction(typeArg: String, body: Expression) extends Value {
 
   override def substitute(variable: String, value: Value): Value = {
     TypeAbstraction(typeArg, body.substitute(variable, value))
+  }
+
+  override def replace(variable: String, value: Expression): Value = {
+    TypeAbstraction(typeArg, body.replace(variable, value))
   }
 
   override def typeSubs(typeVar: String, ty: Type): Value = {

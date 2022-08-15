@@ -65,7 +65,10 @@ object Lexer {
     ExactMatch("def", DefToken()),
     ExactMatch("Lambda", BigLambdaToken()),
     ExactMatch("forall", ForallToken()),
-    ExactMatch("|", Pipe())
+    ExactMatch("|", Pipe()),
+    ExactMatch("if", IfToken()),
+    ExactMatch("then", ThenToken()),
+    ExactMatch("else", ElseToken())
   )
 
   def lex(program: String): List[Token] = {

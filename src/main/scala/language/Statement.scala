@@ -1,6 +1,7 @@
 package language
 
-import language.expressions.Expression
+import hoarelogic.logic.{And, ExprProp, HasType, Implies, Not, Proposition, True, VarEq}
+import language.expressions.{Expression, Var}
 import language.values._
 
 trait Statement extends Expression {
@@ -20,12 +21,23 @@ case class Skip() extends Statement {
 
   override def substitute(variable: String, value: Value): Statement = this
 
+  override def replace(variable: String, expr: Expression): Expression = this
+
   override def toString: String = "skip"
 
   override def typeSubs(typeVar: String, ty: Type): Statement = this
 }
 
 case class Assign(varName: String, value: Expression) extends Statement {
+
+  override def proofObligation(pre: Proposition, post: Proposition): Proposition = {
+    Implies(pre, post.substitute(varName, value))
+  }
+
+  override def pushThrough(pre: Proposition): Proposition = {
+    val newVar = Var(varName + "'")
+    And(pre.substitute(varName, newVar), VarEq(varName, value.replace(varName, newVar)))
+  }
 
   override def typecheck(env: Environment): Type = {
     env.bind(varName, value.typecheck(env))
@@ -41,6 +53,10 @@ case class Assign(varName: String, value: Expression) extends Statement {
     Assign(varName, this.value.substitute(variable, value))
   }
 
+  override def replace(variable: String, expr: Expression): Expression = {
+    Assign(varName, value.replace(variable, expr))
+  }
+
   override def toString: String = "let " + varName + " := " + value.toString
 
   override def typeSubs(typeVar: String, ty: Type): Statement = {
@@ -48,12 +64,18 @@ case class Assign(varName: String, value: Expression) extends Statement {
   }
 }
 
-case class IfStatement(cond: Expression, e1: Statement, e2: Statement) extends Statement {
+case class IfStatement(cond: Expression, e1: Expression, e2: Expression) extends Statement {
 
+  override def proofObligation(pre: Proposition, post: Proposition): Proposition = {
+    val e1Holds = e1.proofObligation(And(pre, ExprProp(cond)), post)
+    val e2Holds = e2.proofObligation(And(pre, Not(ExprProp(cond))), post)
+    And(e1Holds, e2Holds)
+  }
   override def typecheck(env: Environment): Type = {
     cond.typecheck(env).ensureIsType[BoolType](env)
     e1.typecheck(env)
     e2.typecheck(env)
+    UnitType()
   }
 
   override def evaluate(store: Store): Value = {
@@ -63,10 +85,15 @@ case class IfStatement(cond: Expression, e1: Statement, e2: Statement) extends S
     } else {
       e2.evaluate(store)
     }
+    UnitVal()
   }
 
   override def substitute(variable: String, value: Value): Statement = {
     IfStatement(cond.substitute(variable, value), e1.substitute(variable, value), e2.substitute(variable, value))
+  }
+
+  override def replace(variable: String, value: Expression): Statement = {
+    IfStatement(cond.replace(variable, value), e1.replace(variable, value), e2.replace(variable, value))
   }
 
   override def typeSubs(typeVar: String, ty: Type): Statement = {
@@ -76,9 +103,20 @@ case class IfStatement(cond: Expression, e1: Statement, e2: Statement) extends S
   override def toString: String = "if (" + cond.toString + ") {\n\t" + e1.toString + "\n} else {\n\t" + e2.toString + "}"
 }
 
-case class WhileLoop(cond: Expression, body: Expression) extends Statement {
+case class WhileLoop(cond: Expression, body: Expression, invariant: Proposition= True()) extends Statement {
+
+  override def proofObligation(pre: Proposition, post: Proposition): Proposition = {
+    val invHoldsStart = Implies(pre, invariant)
+    val invPreserved = body.proofObligation(And(invariant, ExprProp(cond)), invariant)
+    And(invHoldsStart, invPreserved)
+  }
+
   override def substitute(variable: String, value: Value): Statement = {
     WhileLoop(cond.substitute(variable, value), body.substitute(variable,value))
+  }
+
+  override def replace(variable: String, value: Expression): Statement = {
+    WhileLoop(cond.replace(variable, value), body.replace(variable,value))
   }
 
   override def typeSubs(typeVar: String, ty: Type): Statement = {
@@ -104,7 +142,12 @@ case class WhileLoop(cond: Expression, body: Expression) extends Statement {
 }
 
 case class TypeDefinition(name: String, ty: Type) extends Statement {
+
+  override def proofObligation(pre: Proposition, post: Proposition): Proposition = True()
+
   override def substitute(variable: String, value: Value): Statement = this
+
+  override def replace(variable: String, expr: Expression): Expression = this
 
   override def typeSubs(typeVar: String, ty: Type): Statement = this
 
@@ -118,11 +161,28 @@ case class TypeDefinition(name: String, ty: Type) extends Statement {
 
 case class FunctionDefinition(name: String, typeVars: List[String],
                               args:Map[String, Type], retTy: Type, body: Expression) extends Statement {
+
+  override def proofObligation(pre: Proposition, post: Proposition): Proposition = {
+    var preWithAllTypes = pre
+    args.foreach(p => {
+      preWithAllTypes = And(HasType(p._1, p._2), preWithAllTypes)
+    })
+    body.proofObligation(preWithAllTypes, post)
+  }
+
   override def substitute(variable: String, value: Value): Statement = {
     if (args.keySet.contains(variable)) {
       this
     } else {
       FunctionDefinition(name, typeVars, args, retTy,  body.substitute(variable, value))
+    }
+  }
+
+  override def replace(variable: String, value: Expression): Statement = {
+    if (args.keySet.contains(variable)) {
+      this
+    } else {
+      FunctionDefinition(name, typeVars, args, retTy,  body.replace(variable, value))
     }
   }
 

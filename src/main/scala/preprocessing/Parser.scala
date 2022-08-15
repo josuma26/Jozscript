@@ -53,6 +53,7 @@ object Parser {
       case MatchToken() => matchGenerator(func)
       case OBracket() => tupleGenerator(func, ListBuffer())
       case WhileToken() => whileGenerator(func)
+      case IfToken() => ifGenerator(func)
       case TypeToken() => defineTypeGen(func)
       case DefToken() => defFunctionGen(func)
       case BigLambdaToken() => FromToken(matchTokenThen[VariableToken](_)(variable => {
@@ -267,6 +268,14 @@ object Parser {
   private def whileGenerator(nextGen: Expression => Generator): Generator = {
     ExpressionGenerator(cond => FromToken(matchTokenThen[DoToken](_)(_ => {
       ExpressionGenerator(body => nextGen(WhileLoop(cond, body)))
+    })))
+  }
+
+  private def ifGenerator(nextGen: Expression => Generator): Generator = {
+    ExpressionGenerator(cond => FromToken(matchTokenThen[ThenToken](_)(_ => {
+      ExpressionGenerator(t1 => FromToken(matchTokenThen[ElseToken](_)(_ => {
+        ExpressionGenerator(t2 => nextGen(IfStatement(cond, t1, t2)))
+      })))
     })))
   }
 

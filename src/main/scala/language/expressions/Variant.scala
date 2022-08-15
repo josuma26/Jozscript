@@ -25,6 +25,9 @@ case class VariantExpression(label: String, expr: Expression, ty: Type) extends 
   override def substitute(variable: String, value: Value): Expression =
     VariantExpression(label, expr.substitute(variable, value), ty)
 
+  override def replace(variable: String, value: Expression): Expression =
+    VariantExpression(label, expr.replace(variable, value), ty)
+
   override def typeSubs(typeVar: String, ty: Type): Expression =
     VariantExpression(label, expr.typeSubs(typeVar, ty), this.ty)
 }
@@ -56,6 +59,15 @@ case class PatternMatch(expression: Expression, cases: List[(Pattern, Expression
       expression.substitute(variable, value),
       cases.map({
         case (patt, expr) => (patt, expr.substitute(variable, value))
+      })
+    )
+  }
+
+  override def replace(variable: String, value: Expression): Expression = {
+    PatternMatch(
+      expression.replace(variable, value),
+      cases.map({
+        case (patt, expr) => (patt, expr.replace(variable, value))
       })
     )
   }

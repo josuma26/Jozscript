@@ -11,6 +11,8 @@ case class TupleExpression(exprs: List[Expression]) extends Expression  {
 
   override def substitute(variable: String, value: Value): Expression = TupleExpression(exprs.map(_.substitute(variable, value)))
 
+  override def replace(variable: String, value: Expression): Expression = TupleExpression(exprs.map(_.replace(variable, value)))
+
   override def typeSubs(typeVar: String, ty: Type): Expression = TupleExpression(exprs.map(_.typeSubs(typeVar, ty)))
 
   override def sameShapeAs(other: Expression): Boolean = {
@@ -48,7 +50,10 @@ case class Projection(e: Expression, index: Int) extends Expression {
 
   override def substitute(variable: String, value: Value): Expression = Projection(e.substitute(variable, value), index)
 
+  override def replace(variable: String, value: Expression): Expression = Projection(e.replace(variable, value), index)
+
   override def typeSubs(typeVar: String, ty: Type): Expression = Projection(e.typeSubs(typeVar, ty), index)
+
   override def typecheck(env: Environment): Type = {
     e.typecheck(env) match {
       case ProductTy(types) => types(index)
