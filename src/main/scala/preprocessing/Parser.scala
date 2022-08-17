@@ -1,5 +1,6 @@
 package preprocessing
 
+import hoarelogic.logic._
 import language._
 import language.expressions._
 import language.values.{Bool, Num, TypeAbstraction, UnitVal}
@@ -32,9 +33,10 @@ object Parser {
     gen match {
       case ExpressionGenerator(func) => parseExpression(func, token)
       case FromToken(func) => func(token)
-      case Expr(expr) if token == SemiColon() => ExpressionGenerator(nextExpr => Expr(Sequence(expr, nextExpr)))
+      case Expr(expr)  if token == SemiColon() => ExpressionGenerator(nextExpr => Expr(Sequence(expr, nextExpr)))
       case Expr(expr) => parseAfterExpression(e=> Expr(e), expr, token)
       case TypeGenerator(func) => parseType(func, token)
+      case PropositionGenerator(func) => parseProposition(func, token)
     }
   }
 
@@ -58,6 +60,14 @@ object Parser {
       case DefToken() => defFunctionGen(func)
       case BigLambdaToken() => FromToken(matchTokenThen[VariableToken](_)(variable => {
         FromToken(matchTokenThen[Comma](_)(_ => ExpressionGenerator(expr => func(TypeAbstraction(variable.name, expr)))))
+      }))
+      case BeginPropToken() => FromToken(matchTokenThen[OBracket](_)(_ => PropositionGenerator(pre => {
+        ExpressionGenerator(expr => PropositionGenerator(post => {
+          parseAfterExpression(func, DecoratedProgram(pre, expr, post))
+        }))
+      })))
+      case ImportToken() => FromToken(matchTokenThen[VariableToken](_)(varTok => {
+        parseAfterExpression(func, ImportStatement(varTok.name))
       }))
       case _ => throw new IllegalArgumentException(s"Unexpected token: $token")
     }
@@ -117,9 +127,34 @@ object Parser {
       case Arrow() => TypeGenerator(nextTy => parseAfterType(func, FuncTy(ty, nextTy)))
       case NumCompOpOP(symbol) if symbol.equals("*") => productTypeGenerator(func, ListBuffer(ty))
       case OBracket() => TypeGenerator(nextTy => FromToken(matchTokenThen[CBracket](_)(_ => {
-        func(UnivTypeInstant(ty, nextTy))
+        parseAfterType(func, UnivTypeInstant(ty, nextTy))
       })))
       case _ => parseOne(func(ty), token)
+    }
+  }
+
+  // TODO: maybe explicitly parse out ExprProp sub-props?
+  def parseProposition(afterGen: Proposition => Generator, token: Token): Generator = {
+    token match {
+      case BeginPropToken() => FromToken(matchTokenThen[OBracket](_)(_ => PropositionGenerator(afterGen)))
+      case TrueToken() => parseAfterProposition(afterGen, True())
+      case FalseToken() => parseAfterProposition(afterGen, False())
+      case NotToken() => PropositionGenerator(nextProp => parseAfterProposition(afterGen, Not(nextProp)))
+      case other => parseExpression(expr => parseAfterProposition(afterGen, ExprProp(expr)), other)
+    }
+  }
+
+  def parseAfterProposition(afterGen: Proposition => Generator, prop: Proposition): Generator = {
+    FromToken(token => parseAfterProposition(afterGen, prop, token))
+  }
+
+  def parseAfterProposition(afterGen: Proposition => Generator, prop: Proposition, token: Token): Generator = {
+    token match {
+      case AndToken() => PropositionGenerator(nextProp => parseAfterProposition(afterGen, And(prop, nextProp)))
+      case OrToken() => PropositionGenerator(nextProp => parseAfterProposition(afterGen, Or(prop, nextProp)))
+      case Arrow() => PropositionGenerator(nextProp => parseAfterProposition(afterGen, Implies(prop, nextProp)))
+      case CBracket() => afterGen(prop)
+      case _ => parseOne(afterGen(prop), token)
     }
   }
 
@@ -152,7 +187,7 @@ object Parser {
   private def letGen(afterGen: Expression => Generator) =
     FromToken(varToken => matchTokenThen[VariableToken](varToken)(variable => {
       FromToken(assignToken => matchTokenThen[AssignToken](assignToken)(_ => ExpressionGenerator(expr => {
-        afterGen(Assign(variable.name, expr))
+        parseAfterExpression(afterGen, Assign(variable.name, expr))
       })))
     }))
 
@@ -201,7 +236,6 @@ object Parser {
       case token if argName.nonEmpty =>
         parseType(ty => defFunctionGen(afterGen, funcName, types, args += (argName.get -> ty), None), token)
       case token => throw new IllegalArgumentException(s"Unexpected token. Found: $token")
-
     }
   }
 
@@ -265,10 +299,25 @@ object Parser {
     }
   }
 
+  /*
+  while (cond) [inv?] do {
+    (body)
+  }
+   */
   private def whileGenerator(nextGen: Expression => Generator): Generator = {
-    ExpressionGenerator(cond => FromToken(matchTokenThen[DoToken](_)(_ => {
-      ExpressionGenerator(body => nextGen(WhileLoop(cond, body)))
-    })))
+    ExpressionGenerator(cond => FromToken(tok => {
+      if (tok == BeginPropToken()) {
+        FromToken(matchTokenThen[OBracket](_)(_ => {
+          PropositionGenerator(inv => FromToken(matchTokenThen[DoToken](_)(_ => {
+            ExpressionGenerator(body => nextGen(WhileLoop(cond, body, inv)))
+          })))
+        }))
+      } else if (tok == DoToken()) {
+        ExpressionGenerator(body => nextGen(WhileLoop(cond, body)))
+      } else {
+        throw new IllegalArgumentException(s"Unexpected $tok")
+      }
+    }))
   }
 
   private def ifGenerator(nextGen: Expression => Generator): Generator = {

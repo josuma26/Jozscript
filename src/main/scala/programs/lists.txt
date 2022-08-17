@@ -3,6 +3,21 @@ type List := forall T, {nil: Unit, cons:[T*List[T]]};
 let empty := Lambda T,  nil:unit as List[T];
 let cons := Lambda T, lambda x:T, lambda L:List[T], cons:[x, L] as List[T];
 
+let isEmpty := Lambda T, lambda l: List[T], match l with {
+    | nil: u => true
+    | cons:[first, rest] => false
+};
+
+let isCons := Lambda T, lambda l: List[T], match l with {
+    | nil:u => false
+    | cons:[first, rest] => true
+};
+
+
+def singleton[T](t: T): List[T] := {
+    cons[T](t)(empty[T])
+};
+
 def append[T](l1: List[T], l2: List[T]): List[T] := {
     match l1 with {
         | nil:u => l2
@@ -14,6 +29,16 @@ def contains[T](list: List[T], x: T, eq: T -> T -> Bool): Bool := {
     match list with {
         | nil:u => false
         | cons:[first, rest] => eq(first)(x) || contains[T](rest)(x)(eq)
+    }
+};
+
+def remove[T](list: List[T], x:T, eq: (T -> T -> Bool)): List[T] := {
+    match list with {
+        | nil:u => list
+        | cons:[first, rest] => match eq(x)(first) with {
+            | true => remove[T](rest)(x)(eq)
+            | false => cons[T](first)(remove[T](rest)(x)(eq))
+        }
     }
 };
 
@@ -47,6 +72,10 @@ def foldr[T, R](list: List[T], base: R, func: T -> R -> R): R := {
 
 def sumAll(list: List[Nat]): Nat := {
     foldr[Nat][Nat](list)(0)(lambda x:Nat, lambda y:Nat, x + y)
+};
+
+def forAll[T](l: List[T], op: (T -> Unit)): Unit := {
+    foldr[T][Unit](l)(unit)(lambda x:T, lambda u:Unit, op(x))
 }
 
 

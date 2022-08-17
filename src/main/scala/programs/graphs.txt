@@ -1,0 +1,39 @@
+
+import lists;
+
+type Graph := forall T, [List[T] * (T -> List[T])];
+type Option := forall T, {some:T, none:Unit};
+
+type Map := forall T, forall U, (T -> Option[U]);
+
+def update[T, U](map: Map[T][U], x: T, v: U, eq: (T -> T -> Bool)): Map[T][U] := {
+    lambda y:T, match eq(x)(y) with {
+        | true => v
+        | false => map(y)
+    }
+};
+
+def path[T](g: Graph[T], from: T, to: T, eq: (T -> T -> Bool)): Option[List[T]] := {
+    let stack := singleton[T](from);
+
+    let paths := lambda x:T, none:unit as Option[List[T]];
+
+    while (isCons[T](stack)) do {
+        match stack with {
+            | nil:u => unit
+            | cons:[first, rest] => { let head := first; let stack := rest }
+        };
+
+        let pathTo := match paths(head) with {
+            | some:p => p
+            | none:u => { let paths := update[T][Option[List[T]]](paths)(head)(singleton[T](head)(eq)) ; singleton[T](head) }
+        };
+
+        match eq(head)(to) with {
+            | true => some:pathTo as Option[List[T]]
+            | false => {
+                let neighs := g.1(head)
+            }
+        }
+    }
+}

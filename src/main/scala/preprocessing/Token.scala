@@ -55,5 +55,15 @@ case class NatTypeToken() extends Token
 case class UnitTypeToken() extends Token
 case class ForallToken() extends Token
 
+/**
+ * Propositions
+ */
+case class BeginPropToken() extends Token
+case class TrueToken() extends Token
+case class FalseToken() extends Token
+case class AndToken() extends Token
+case class OrToken() extends Token
+case class NotToken() extends Token
+
 case class EOLToken() extends Token
 

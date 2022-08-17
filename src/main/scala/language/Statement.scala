@@ -1,8 +1,10 @@
 package language
 
-import hoarelogic.logic.{And, ExprProp, HasType, Implies, Not, Proposition, True, VarEq}
+import hoarelogic.logic._
 import language.expressions.{Expression, Var}
 import language.values._
+import preprocessing.JFileReader
+
 
 trait Statement extends Expression {
 
@@ -36,7 +38,7 @@ case class Assign(varName: String, value: Expression) extends Statement {
 
   override def pushThrough(pre: Proposition): Proposition = {
     val newVar = Var(varName + "'")
-    And(pre.substitute(varName, newVar), VarEq(varName, value.replace(varName, newVar)))
+    And(pre.substitute(varName, newVar), ExprEq(newVar, value))
   }
 
   override def typecheck(env: Environment): Type = {
@@ -108,7 +110,16 @@ case class WhileLoop(cond: Expression, body: Expression, invariant: Proposition=
   override def proofObligation(pre: Proposition, post: Proposition): Proposition = {
     val invHoldsStart = Implies(pre, invariant)
     val invPreserved = body.proofObligation(And(invariant, ExprProp(cond)), invariant)
-    And(invHoldsStart, invPreserved)
+    val impPost = Implies(And(invariant, Not(ExprProp(cond))), post)
+    And(And(invHoldsStart, invPreserved), impPost)
+  }
+
+  override def pushThrough(pre: Proposition): Proposition = {
+    And(invariant, Not(ExprProp(cond)))
+  }
+
+  override def impliesPushed(pre: Proposition): Proposition = {
+    proofObligation(pre, pushThrough(pre))
   }
 
   override def substitute(variable: String, value: Value): Statement = {
@@ -234,6 +245,24 @@ case class FunctionDefinition(name: String, typeVars: List[String],
       val arg = args.head
       curriedArguments(rest, FuncTy(this.args(arg), acc))
     }
+  }
+}
+
+case class ImportStatement(packageName: String) extends Statement {
+
+  override def substitute(variable: String, value: Value): Statement = this
+
+  override def typeSubs(typeVar: String, ty: Type): Statement = this
+
+  override def evaluate(store: Store): Value = read().evaluate(store)
+
+  override def replace(variable: String, expr: Expression): Expression = this
+
+  override def typecheck(env: Environment): Type = read().typecheck(env)
+
+  private def read(): Expression = {
+    val fileName = "src/main/scala/programs/" + packageName + ".txt"
+    JFileReader.read(fileName)
   }
 }
 

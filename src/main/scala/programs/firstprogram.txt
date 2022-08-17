@@ -1,4 +1,7 @@
 
-let a := 5;
-let a := a - 1;
-let a := a - 1
+
+def even(n: Nat): Bool := n % 2;
+#![True] {
+let a := even(2)
+}
+#![a -> Even(2)]

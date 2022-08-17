@@ -1,6 +1,6 @@
 package language.expressions
 
-import hoarelogic.logic.{Implies, Proposition}
+import hoarelogic.logic.{And, Implies, Proposition, True}
 import language._
 import language.values.Value
 
@@ -22,6 +22,8 @@ trait Expression {
   def proofObligation(pre: Proposition, post: Proposition): Proposition = Implies(pre, post)
 
   def pushThrough(pre: Proposition): Proposition = pre
+
+  def impliesPushed(pre: Proposition): Proposition = True()
 
   def sameShapeAs(other: Expression): Boolean = {
     if (this.getClass.equals(other.getClass)) {
@@ -57,7 +59,10 @@ case class Sequence(s1: Expression, s2: Expression) extends Expression {
   }
 
   override def proofObligation(pre: Proposition, post: Proposition): Proposition = {
-    s2.proofObligation(s1.pushThrough(pre), post)
+    val pushed = s1.pushThrough(pre)
+    val s1ImpliesPushed = s1.impliesPushed(pre)
+    val s2Post = s2.proofObligation(pushed, post)
+    And(s1ImpliesPushed, s2Post)
   }
   override def pushThrough(pre: Proposition): Proposition = {
     s2.pushThrough(s1.pushThrough(pre))

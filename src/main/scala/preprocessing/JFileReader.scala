@@ -1,11 +1,12 @@
-import language.expressions.Expression
-import preprocessing.Parser
+package preprocessing
 
-import java.io.{FileInputStream, FileReader, InputStreamReader}
+import language.expressions.Expression
+
+import java.io.{FileInputStream, InputStreamReader}
 import java.util.Scanner
 import scala.collection.mutable
 
-object FIleReader {
+object JFileReader {
   def read(filename: String): Expression = {
     val program = readFileLines(filename)
     Parser.parse(program)

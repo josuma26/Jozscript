@@ -1,0 +1,37 @@
+
+
+
+type List := forall T, {nil: Unit, cons:[T*List[T]]};
+let empty := Lambda T,  nil:unit as List[T];
+let cons := Lambda T, lambda x:T, lambda L:List[T], cons:[x, L] as List[T];
+
+
+def length[T](l: List[T]): Nat := {
+    match l with {
+        | nil:u => 0
+        | cons:[first, rest] => 1 + length[T](rest)
+    }
+};
+
+def isNotEmpty[T](l: List[T]): Bool := {
+    match l with {
+        | nil:u => false
+        | cons:[first, rest] => true
+    }
+};
+
+
+#![True] {
+let l := cons[Nat](2)(cons[Nat](3)(empty[Nat]));
+let count := 0;
+while (isNotEmpty[Nat](l)) #![count + l = 2] do {
+    let count := count + 1;
+    let l :=
+        match l with {
+            | nil: u => l
+            | cons:[first, rest] => rest
+        }
+};
+count
+}#![count = 2]
+

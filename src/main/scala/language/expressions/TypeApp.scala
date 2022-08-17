@@ -29,4 +29,6 @@ case class TypeApp(e: Expression, ty: Type) extends Expression {
   override protected def checkSub(other: TypeApp.this.type): Boolean = {
     this.e.sameShapeAs(other.e)
   }
+
+  override def toString: String = e.toString + "[" + ty.toString + "]"
 }

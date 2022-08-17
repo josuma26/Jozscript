@@ -1,8 +1,12 @@
 
-let n := 5;
-let a := 1;
-while (n > 0) do {
-    let a := a * n;
-    let n := n - 1
-};
-a
+
+#![True] {
+    let n := 5;
+    let a := 1;
+    while (n > 0) #![a * fact(n) = fact(5)] do {
+        let a := a * n;
+        let n := n - 1
+    }
+} #![a = fact(5)]
+
+

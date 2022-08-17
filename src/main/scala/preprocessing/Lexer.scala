@@ -68,7 +68,14 @@ object Lexer {
     ExactMatch("|", Pipe()),
     ExactMatch("if", IfToken()),
     ExactMatch("then", ThenToken()),
-    ExactMatch("else", ElseToken())
+    ExactMatch("else", ElseToken()),
+    ExactMatch("True", TrueToken()),
+    ExactMatch("False", FalseToken()),
+    ExactMatch("\\/", OrToken()),
+    ExactMatch("/\\", AndToken()),
+    ExactMatch("~", NotToken()),
+    ExactMatch("#!", BeginPropToken()),
+    ExactMatch("import", ImportToken())
   )
 
   def lex(program: String): List[Token] = {

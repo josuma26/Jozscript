@@ -33,8 +33,17 @@ case class And(p: Proposition, q: Proposition) extends Proposition {
   override def toString: String =  "(" + p.toString + ") /\\ (" + q.toString  + ")"
 }
 
+case class Or(p: Proposition, q: Proposition) extends Proposition {
+  override def substitute(name: String, e: Expression): Proposition =
+    Or(p.substitute(name, e), q.substitute(name, e))
+
+  override def toString: String =  "(" + p.toString + ") \\/ (" + q.toString  + ")"
+}
+
 case class Not(p: Proposition) extends Proposition {
   override def substitute(name: String, e: Expression): Proposition = Not(p.substitute(name, e))
+
+  override def toString: String = "~" + p.toString
 }
 
 case class ExprProp(expr: Expression) extends Proposition {
