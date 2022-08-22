@@ -76,6 +76,20 @@ def sumAll(list: List[Nat]): Nat := {
 
 def forAll[T](l: List[T], op: (T -> Unit)): Unit := {
     foldr[T][Unit](l)(unit)(lambda x:T, lambda u:Unit, op(x))
+};
+
+def addLast[T](l: List[T], x: T): List[T] := {
+    match l with {
+        | nil:u => singleton[T](x)
+        | cons:[first, rest] => cons[T](first)(addLast[T](rest)(x))
+    }
+};
+
+def isNotEmpty[T](l: List[T]): Bool := {
+    match l with {
+        | nil:u => false
+        | cons:[first, rest] => true
+    }
 }
 
 

@@ -1,0 +1,56 @@
+
+import lists;
+
+def smallerThanAll[T](x: T, l: List[T], comp: (T -> T-> Bool)): Bool := {
+    foldr[T][Bool](l)(true)(lambda y:T, lambda r: Bool, r && comp(x)(y))
+};
+
+def sorted[T](l: List[T], comp: (T -> T -> Bool)): Bool := {
+    match l with {
+        | nil:u => true
+        | cons:[first, rest] => smallerThanAll[T](first)(rest)(comp) && sorted[T](rest)(comp)
+    }
+};
+
+def insert[T](l: List[T], x: T, comp: (T -> T -> Bool)): List[T] := {
+    match l with {
+        | nil:u => singleton[T](x)
+        | cons:[first, rest] => match comp(first)(x) with {
+            | true => cons[T](first)(insert[T](rest)(x)(comp))
+            | false => cons[T](x)(l)
+        }
+    }
+};
+
+
+def subset[T](l1: List[T], l2: List[T], comp: (T -> T -> Bool)): Bool := {
+    match l1 with {
+        | nil:u => true
+        | cons:[first, rest] => contains[T](l2)(first)(comp) && subset[T](rest)(l2)(comp)
+    }
+};
+
+def permutation[T](l1: List[T], l2: List[T], comp: (T -> T -> Bool)): Bool := {
+    subset[T](l1)(l2)(comp) && subset[T](l2)(l1)(comp)
+};
+
+
+#![True] {
+let c := lambda x:Nat, lambda y: Nat, x <= y;
+
+let l := L;
+
+let sortedList := empty[Nat];
+
+while (isNotEmpty[Nat](l))
+    #![(sorted(sortedList)(c) = true) /\ (subset(append(sortedList)(l))(L)(c) = true)
+    /\ (subset(L)(append(l)(sortedList))(c) = true)] do {
+    match l with {
+        | cons:[first, rest] => {
+            let l := rest;
+            let sortedList := insert[Nat](sortedList)(first)(c)
+        }
+    }
+};
+sortedList
+} #![(sorted(sortedList)(c) = true) /\ (permutation(sortedList)(L)(c) = true)]

@@ -16,4 +16,9 @@ case class DecoratedProgram(pre: Proposition, prog: Expression, post: Propositio
   override def typeSubs(typeVar: String, ty: Type): Expression = prog.typeSubs(typeVar, ty)
 
   override protected def checkSub(other: DecoratedProgram.this.type): Boolean = prog.sameShapeAs(other.prog)
+
+  override def printCoq(): String = {
+    "(*\n" + "{{" + pre.toString + "}}\n\n" + prog.toString() + "\n\n{{" + post.toString + "}}\n*)\n\n" +
+    "Theorem correct: " + prog.proofObligation(pre, post) + ".\n\tProof.\nAdmitted."
+  }
 }

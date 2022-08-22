@@ -1,6 +1,7 @@
 package language
 
-import language.expressions.{Expression, TupleExpression, TypeApp, Var}
+import hoarelogic.logic.{ExprEq, Proposition}
+import language.expressions.{Expression, TupleExpression, TypeApp, Var, VariantExpression}
 import language.values._
 
 /**
@@ -40,6 +41,11 @@ trait Pattern {
    */
   def typeCheckBound(expr: Expression, env: Environment, valueType: Type): Type
 
+
+  def matchProp(value: Expression): Proposition
+
+  def printCoq(): String
+
 }
 
 /**
@@ -66,6 +72,18 @@ case class LabelBinderPattern(label: String, binder: Pattern) extends Pattern {
     }
     binder.typeCheckBound(expr, env, optTy.get)
   }
+
+  override def matchProp(value: Expression): Proposition = {
+    binder.matchProp(value) match {
+      case ExprEq(e1, e2) => ExprEq(VariantExpression(label, e1, UnitType()), e2)
+    }
+  }
+
+  override def toString: String = "(" + label + " " +  binder.toString + ")"
+
+  override def printCoq(): String = "(" + label.capitalize + " " + binder.printCoq() + ")"
+
+
 }
 
 case class ExpressionPattern(patternValue: Expression) extends Pattern {
@@ -105,6 +123,8 @@ case class ExpressionPattern(patternValue: Expression) extends Pattern {
     exprTy
   }
 
+  override def matchProp(value: Expression): Proposition =  ExprEq(patternValue, value)
+
   private def bindFreeVariables(patternValue: Expression, env: Environment, valueType: Type): Unit = {
     patternValue match {
       case Num(_) | Bool(_) | UnitVal() =>
@@ -138,6 +158,10 @@ case class ExpressionPattern(patternValue: Expression) extends Pattern {
       case TypeApp(e, ty) => unbindFreeVariables(e, env)
     }
   }
+
+  override def toString: String = patternValue.toString()
+
+  override def printCoq(): String = patternValue.printCoq()
 
 }
 

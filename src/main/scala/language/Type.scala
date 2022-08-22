@@ -35,26 +35,36 @@ sealed trait Type {
   }
 
   def substitute(name: String, ty: Type): Type = this
+
+  def printCoq(): String = toString
 }
 
 case class BoolType() extends Type {
   override def toString: String = "Bool"
+
+  override def printCoq(): String = "bool"
 
   override protected def innerEqual(other: BoolType.this.type, environment: Environment): Boolean = true
 }
 case class NatType() extends Type {
   override def toString: String = "Nat"
 
+  override def printCoq(): String = "nat"
+
   override protected def innerEqual(other: NatType.this.type, environment: Environment): Boolean = true
 }
 case class UnitType() extends Type {
   override def toString: String = "Unit"
+
+  override def printCoq(): String = "unit"
 
   override protected def innerEqual(other: UnitType.this.type, environment: Environment): Boolean = true
 }
 
 case class FuncTy(argTy: Type, retType: Type) extends Type {
   override def toString: String = "(" + argTy.toString + " -> " + retType.toString + ")"
+
+  override def printCoq(): String = "(" + argTy.printCoq() + " -> " + retType.printCoq() + ")"
 
   override protected def innerEqual(other: FuncTy.this.type, environment: Environment): Boolean = {
     argTy.eq(other.argTy, environment) && retType.eq(other.retType, environment)
@@ -68,6 +78,8 @@ case class FuncTy(argTy: Type, retType: Type) extends Type {
 case class ProductTy(types: List[Type]) extends Type {
   override def toString: String = types.map(_.toString).mkString("[", " * ","]")
 
+  override def printCoq(): String = types.map(_.printCoq()).mkString("(", "*", ")")
+
   override protected def innerEqual(other: ProductTy.this.type, environment: Environment): Boolean = {
     types.size == other.types.length &&
     types.indices.forall(index => types(index).eq(other.types(index), environment))
@@ -80,6 +92,12 @@ case class ProductTy(types: List[Type]) extends Type {
 
 case class SumTy(types: Map[String, Type]) extends Type {
   override def toString: String = types.map(pair => pair._1 + ": " + pair._2.toString).mkString("{",",","}")
+
+  override def printCoq(): String = {
+    types.map({
+      case (label, ty) => "| " + label + ": " + ty.printCoq()
+    }).mkString("\n")
+  }
 
   override protected def innerEqual(other: SumTy.this.type, environment: Environment): Boolean = {
     types.keySet.equals(other.types.keySet) &&
@@ -136,6 +154,8 @@ case class UnivTypeInstant(univ: Type, instant: Type) extends Type {
   }
 
   override def toString: String = univ.toString + "[" + instant.toString + "]"
+
+  override def printCoq(): String = univ.printCoq() + " " + instant.printCoq()
 
 }
 

@@ -35,6 +35,8 @@ abstract class BinOp[T, R, V <: Value, V2 <: Value](op: String, e1: Expression, 
   def convertFrom(v: R): V2
 
   override def toString: String = "(" + e1.toString + " " + op + " " + e2.toString + ")"
+
+  override def printCoq(): String = "(" + e1.printCoq() + " " + op + " " + e2.printCoq() + ")"
 }
 
 

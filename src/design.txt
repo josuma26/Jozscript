@@ -1,21 +1,7 @@
-Next steps:
-    - Add generics to functions
-    - Add structs
-    * Should write tests and documentation before refactoring parser
-    - Refactor parser
-    - Add Hoare logic
-    - Parse logic
-    - Print out proof obligations to import to coq
-    - Prove theorems inline
+Need to formalize language in Coq to make Coq file generation automatic.
+Should have a nice automation in Coq to leave only interesting cases once Theorem is generated.
+Need to prove proof obligations are provable if and only if program is correct:
 
-Enhancements:
-- automatically generate simplifications for variant definitins (e.g. let empty := Lambda T, nil:unit as List[T])
-- uncurry functions implicitly (f(1)(2)(3) should be f(1,2,3))
-- add imports
-
-class ClassName[T, ...](field1: Type, field2: Type) {
-
-}
-
+    forall P e Q, {P} e {Q} <-> #![P] e #![Q]
 
 

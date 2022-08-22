@@ -42,4 +42,6 @@ case class App(e1: Expression, e2: Expression) extends Expression {
   override def checkSub(other: App.this.type): Boolean = e1.sameShapeAs(other.e1) && e2.sameShapeAs(other.e2)
 
   override def toString: String = e1.toString + "(" + e2.toString + ")"
+
+  override def printCoq(): String = "(" + e1.printCoq() + " " + e2.printCoq() + ")"
 }

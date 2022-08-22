@@ -31,6 +31,8 @@ case class TupleExpression(exprs: List[Expression]) extends Expression  {
     exprs.length == otherExprs.length && exprs.indices.forall(index => exprs(index).sameShapeAs(otherExprs(index)))
   }
   override def toString: String = exprs.map(_.toString).mkString("[",", ","]")
+
+  override def printCoq(): String = exprs.map(_.printCoq()).mkString("(", ", ", ")")
 }
 
 

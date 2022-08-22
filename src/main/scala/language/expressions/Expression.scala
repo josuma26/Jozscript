@@ -4,6 +4,8 @@ import hoarelogic.logic.{And, Implies, Proposition, True}
 import language._
 import language.values.Value
 
+import java.io.{File, PrintWriter}
+
 /**
  * Expressions in the language.
  * x | \x:T, e | e e | e +-*% e | e &&|| e
@@ -43,6 +45,16 @@ trait Expression {
       case _ => throw new IllegalStateException(s"Expected $this to be of a different tyoe.")
     }
   }
+
+  def printCoq(): String = toString
+
+  def generateCoqFile(fileName: String): Unit = {
+    val fileBuilder = new PrintWriter(new File(fileName))
+    writeCoqToFile(fileBuilder)
+    fileBuilder.close()
+  }
+
+  protected def writeCoqToFile(writer: Appendable): Unit = writer.append(this.printCoq())
 }
 
 case class Sequence(s1: Expression, s2: Expression) extends Expression {
@@ -78,6 +90,8 @@ case class Sequence(s1: Expression, s2: Expression) extends Expression {
   }
 
   override def toString: String = s1.toString + ";\n" + s2.toString
+
+  override def printCoq(): String = s1.printCoq() + "\n\n" + s2.printCoq()
 
   override def checkSub(other: Sequence.this.type): Boolean = {
     this.s1.sameShapeAs(other.s1) && this.s2.sameShapeAs(other.s2)

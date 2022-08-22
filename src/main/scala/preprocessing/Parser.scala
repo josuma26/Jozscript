@@ -187,7 +187,7 @@ object Parser {
   private def letGen(afterGen: Expression => Generator) =
     FromToken(varToken => matchTokenThen[VariableToken](varToken)(variable => {
       FromToken(assignToken => matchTokenThen[AssignToken](assignToken)(_ => ExpressionGenerator(expr => {
-        parseAfterExpression(afterGen, Assign(variable.name, expr))
+        afterGen(Assign(variable.name, expr))
       })))
     }))
 

@@ -1,5 +1,6 @@
 package language.expressions
 
+import hoarelogic.logic.{And, Proposition}
 import language.values.Value
 import language._
 
@@ -30,6 +31,8 @@ case class VariantExpression(label: String, expr: Expression, ty: Type) extends 
 
   override def typeSubs(typeVar: String, ty: Type): Expression =
     VariantExpression(label, expr.typeSubs(typeVar, ty), this.ty)
+
+  override def printCoq(): String = label + "(" + expr.printCoq() + ")"
 }
 
 /**
@@ -101,57 +104,25 @@ case class PatternMatch(expression: Expression, cases: List[(Pattern, Expression
       case None => throw new IllegalArgumentException("Could not type check pattern match.")
     }
   }
+
+  override def proofObligation(pre: Proposition, post: Proposition): Proposition = {
+    cases.map({
+      case (patt, e) => e.proofObligation(And(pre, patt.matchProp(expression)), post)
+    }).reduce(And)
+  }
+
+  override def pushThrough(pre: Proposition): Proposition = {
+    cases.map({
+      case (patt, e) => e.pushThrough(And(pre, patt.matchProp(expression)))
+    }).reduce(And)
+  }
+
+  override def printCoq(): String = {
+    "match " + expression.printCoq() + " with \n" + cases.map({
+      case (pattern, expr) => "\t| " + pattern.printCoq() + " => " + expr.printCoq()
+    }).mkString("\n") + "\n\tend"
+  }
 }
-
-
-/*
-/**
- * Gamma |- e : {l1:Tau1, l2: Tau2, ..., ln: Taun}
- * foreach i Gamma;x_i:Tau_i |- t_i : Tau
- * -----------------------------------------------
- *  Gamma |- match e with
- *      case l1(x1) => t1
- *      ...
- *      case ln(xn) => tn
- *  : Tau
- */
-case class Match(expr: Expression, cases: Map[String, (String, Expression)]) extends Expression {
-  override def evaluate(store: Store): Value = {
-    val variant = expr.evaluate(store).ensureHasType[VariantValue]()
-    val pair = cases(variant.label)
-    pair._2.substitute(pair._1, variant.value).evaluate(store)
-  }
-
-  override def substitute(variable: String, value: Value): Expression = {
-    Match(expr.substitute(variable, value),
-      cases.map(kv => (kv._1, (kv._2._1, kv._2._2.substitute(variable, value)))))
-  }
-
-  override def typecheck(env: Environment): Type = {
-    val variantTy = expr.typecheck(env).ensureIsType[SumTy]
-    var evaluatedType: Option[Type] = Option.empty
-    for ((label, ty) <- variantTy.types) {
-      if (!cases.contains(label)) {
-        throw new IllegalArgumentException(s"$label not contained in variant cases.")
-      }
-      val (binder, e) = cases(label)
-      env.bind(binder, ty)
-      val caseType = e.typecheck(env)
-      env.unbind(binder)
-
-      evaluatedType match {
-        case Some(evTy) => assert(evTy == caseType)
-        case None => evaluatedType = Some(caseType)
-      }
-
-    }
-    evaluatedType.getOrElse(UnitType())
-  }
-
-  override protected def checkSub(other: Match.this.type): Boolean = ???
-}
-
- */
 
 
 

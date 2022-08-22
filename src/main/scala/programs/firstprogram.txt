@@ -1,7 +1,6 @@
 
+type Variant := {cons1: Unit, cons2: [Nat*Nat]};
 
-def even(n: Nat): Bool := n % 2;
 #![True] {
-let a := even(2)
-}
-#![a -> Even(2)]
+
+} #![c = 5]

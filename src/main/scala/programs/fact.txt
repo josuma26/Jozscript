@@ -1,9 +1,15 @@
 
+def fact(n: Nat): Nat := {
+    match n with {
+        | 0 => 1
+        | i => i * fact(i - 1)
+    }
+};
 
 #![True] {
     let n := 5;
     let a := 1;
-    while (n > 0) #![a * fact(n) = fact(5)] do {
+    while (n > 0) #![(a * fact(n)) = fact(5)] do {
         let a := a * n;
         let n := n - 1
     }

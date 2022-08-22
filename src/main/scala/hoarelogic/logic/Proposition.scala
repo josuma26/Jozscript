@@ -51,7 +51,7 @@ case class ExprProp(expr: Expression) extends Proposition {
     ExprProp(expr.replace(name, v))
   }
 
-  override def toString: String = expr.toString
+  override def toString: String = expr.printCoq()
 }
 
 case class VarEq(varName: String, expr: Expression) extends Proposition {
@@ -59,7 +59,7 @@ case class VarEq(varName: String, expr: Expression) extends Proposition {
     if (name.equals(varName)) ExprEq(e, expr) else VarEq(varName, expr.replace(name, e))
   }
 
-  override def toString: String = varName + " = " + expr.toString
+  override def toString: String = varName + " = " + expr.printCoq()
 }
 
 case class ExprEq(e1: Expression, e2: Expression) extends Proposition {
@@ -67,7 +67,7 @@ case class ExprEq(e1: Expression, e2: Expression) extends Proposition {
     ExprEq(e1.replace(name, e), e2.replace(name, e))
   }
 
-  override def toString: String = e1.toString + " = " + e2.toString
+  override def toString: String = e1.printCoq() + " = " + e2.printCoq()
 }
 
 case class HasType(varName: String, ty: Type) extends Proposition {

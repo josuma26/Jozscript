@@ -6,17 +6,20 @@ type Option := forall T, {some:T, none:Unit};
 
 type Map := forall T, forall U, (T -> Option[U]);
 
-def update[T, U](map: Map[T][U], x: T, v: U, eq: (T -> T -> Bool)): Map[T][U] := {
+def update[T, U](m: Map[T][U], x: T, v: U, eq: (T -> T -> Bool)): Map[T][U] := {
     lambda y:T, match eq(x)(y) with {
-        | true => v
-        | false => map(y)
+        | true => some:v as Option[U]
+        | false => m(y)
     }
 };
 
-def path[T](g: Graph[T], from: T, to: T, eq: (T -> T -> Bool)): Option[List[T]] := {
+
+def findPath[T](g: Graph[T], from: T, to: T, eq: (T -> T -> Bool)): Option[List[T]] := {
     let stack := singleton[T](from);
 
     let paths := lambda x:T, none:unit as Option[List[T]];
+
+    let path := none:unit as Option[List[T]];
 
     while (isCons[T](stack)) do {
         match stack with {
@@ -26,14 +29,42 @@ def path[T](g: Graph[T], from: T, to: T, eq: (T -> T -> Bool)): Option[List[T]] 
 
         let pathTo := match paths(head) with {
             | some:p => p
-            | none:u => { let paths := update[T][Option[List[T]]](paths)(head)(singleton[T](head)(eq)) ; singleton[T](head) }
+            | none:u => {
+                let sin := singleton[T](head);
+                let paths := update[T][List[T]](paths)(head)(sin)(eq);
+                sin
+            }
         };
 
         match eq(head)(to) with {
-            | true => some:pathTo as Option[List[T]]
+            | true => {let path := some:pathTo as Option[List[T]]; let stack := empty[T] }
             | false => {
-                let neighs := g.1(head)
+                let neighs := g.1(head);
+                forAll[T](neighs)(lambda n:T, {
+                    match paths(n) with {
+                            | some:p => unit
+                            | none:u => {
+                                let pathToNeigh := addLast[T](pathTo)(n);
+                                let paths := update[T][List[T]](paths)(n)(pathToNeigh)(eq);
+                                let stack := cons[T](n)(stack)
+                            }
+                    }
+                })
             }
         }
-    }
-}
+    };
+    path
+};
+
+let neighFunc := lambda x:Nat, match x with {
+    | 1 => cons[Nat](2)(empty[Nat])
+    | 2 => cons[Nat](3)(empty[Nat])
+    | 3 => cons[Nat](2)(cons[Nat](4)(empty[Nat]))
+    | 4 => cons[Nat](5)(cons[Nat](1)(empty[Nat]))
+    | 5 => empty[Nat]
+};
+
+let list := generateList[Nat](5)(lambda x:Nat, x + 1);
+let g := [list, neighFunc];
+
+findPath[Nat](g)(1)(5)(lambda x:Nat, lambda y:Nat, x = y)

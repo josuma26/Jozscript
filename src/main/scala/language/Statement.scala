@@ -38,7 +38,7 @@ case class Assign(varName: String, value: Expression) extends Statement {
 
   override def pushThrough(pre: Proposition): Proposition = {
     val newVar = Var(varName + "'")
-    And(pre.substitute(varName, newVar), ExprEq(newVar, value))
+    And(pre.substitute(varName, newVar), VarEq(varName, value.replace(varName, newVar)))
   }
 
   override def typecheck(env: Environment): Type = {
@@ -60,6 +60,8 @@ case class Assign(varName: String, value: Expression) extends Statement {
   }
 
   override def toString: String = "let " + varName + " := " + value.toString
+
+  override def printCoq(): String = "Definition " + varName + " := " + value.printCoq() + "."
 
   override def typeSubs(typeVar: String, ty: Type): Statement = {
     Assign(varName, value.typeSubs(typeVar, ty))
@@ -168,6 +170,8 @@ case class TypeDefinition(name: String, ty: Type) extends Statement {
     env.saveAlias(name, ty)
     UnitType()
   }
+
+  override def printCoq(): String = "" //Inductive " + name + " := \n" + ty.printCoq() + "."
 }
 
 case class FunctionDefinition(name: String, typeVars: List[String],
@@ -246,6 +250,14 @@ case class FunctionDefinition(name: String, typeVars: List[String],
       curriedArguments(rest, FuncTy(this.args(arg), acc))
     }
   }
+
+  override def printCoq(): String = {
+    val typeArgs = if (typeVars.isEmpty)  "" else typeVars.mkString(" {", " ","}")
+    val argsString = args.map({
+      case (label, ty) => " (" + label + ": " + ty.printCoq() + ")"
+    }).mkString(" ")
+    "Fixpoint " + name + typeArgs + argsString + ": " + retTy.printCoq() + " := \n\t" + body.printCoq() + "."
+  }
 }
 
 case class ImportStatement(packageName: String) extends Statement {
@@ -264,6 +276,10 @@ case class ImportStatement(packageName: String) extends Statement {
     val fileName = "src/main/scala/programs/" + packageName + ".txt"
     JFileReader.read(fileName)
   }
+
+  override def toString: String = "import " + packageName
+
+  override def printCoq(): String = read().printCoq()
 }
 
 

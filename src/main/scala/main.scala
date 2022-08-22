@@ -7,7 +7,8 @@ import preprocessing.JFileReader
 
 object main {
   def main(args: Array[String]): Unit = {
-    fromFile("src/main/scala/programs/graphs.txt")
+    JFileReader.read("src/main/scala/programs/sorting.txt").generateCoqFile("sample.v")
+    //fromFile("src/main/scala/programs/fact.txt")
   }
 
   private def fromFile(fileName: String): (Type, Value) = {

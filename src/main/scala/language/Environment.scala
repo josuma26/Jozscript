@@ -16,6 +16,10 @@ class Environment {
   }
 
   def bind(name: String, ty: Type): Unit = {
+    if (typeMap.contains(name) && !typeMap(name).eq(ty, this)) {
+      throw new IllegalArgumentException(s"Can not change a variables type in the environment. " +
+        s"$name has type ${typeMap(name)}, can not bind to $ty.")
+    }
     typeMap.put(name, ty.getIfAlias(this))
   }
 

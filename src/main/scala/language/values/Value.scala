@@ -46,6 +46,8 @@ case class Func(arg: String, ty: Type, body: Expression) extends Value {
     ty.equals(other.ty) && body.sameShapeAs(other.body)
 
   override def toString: String = "lambda " + arg + ": " + ty.toString + ", " + body.toString
+
+  override def printCoq(): String = "(fun " + arg + ": " + ty.printCoq() + " => " + body.printCoq() + ")"
 }
 
 case class Bool(value: Boolean) extends Value {
@@ -67,7 +69,7 @@ case class Num(value: Int) extends Value {
 case class UnitVal() extends Value {
   override def typecheck(env: Environment): Type = UnitType()
 
-  override def toString: String = "unit"
+  override def toString: String = "tt"
 
   override protected def checkSub(other: UnitVal.this.type): Boolean = true
 }
@@ -174,6 +176,8 @@ case class TypeAbstraction(typeArg: String, body: Expression) extends Value {
   override protected def checkSub(other: TypeAbstraction.this.type): Boolean = {
     body.sameShapeAs(other.body)
   }
+
+  override def printCoq(): String = "fun {" + typeArg + ": Type} => " + body.printCoq()
 }
 
 
