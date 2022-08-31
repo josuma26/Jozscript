@@ -18,7 +18,8 @@ case class DecoratedProgram(pre: Proposition, prog: Expression, post: Propositio
   override protected def checkSub(other: DecoratedProgram.this.type): Boolean = prog.sameShapeAs(other.prog)
 
   override def printCoq(): String = {
+    val po = prog.proofObligation(pre, post)
     "(*\n" + "{{" + pre.toString + "}}\n\n" + prog.toString() + "\n\n{{" + post.toString + "}}\n*)\n\n" +
-    "Theorem correct: " + prog.proofObligation(pre, post) + ".\n\tProof.\nAdmitted."
+    "Theorem correct: " + po.quantify() + ".\n\tProof.\nAdmitted."
   }
 }

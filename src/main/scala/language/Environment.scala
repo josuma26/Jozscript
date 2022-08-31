@@ -5,8 +5,6 @@ class Environment {
 
   private val typeAliases = collection.mutable.Map[String, Type]()
 
-
-
   def get(name: String): Type = {
     val typeOpt = typeMap.get(name)
     if (typeOpt.isEmpty) {

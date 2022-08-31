@@ -180,7 +180,7 @@ case class FunctionDefinition(name: String, typeVars: List[String],
   override def proofObligation(pre: Proposition, post: Proposition): Proposition = {
     var preWithAllTypes = pre
     args.foreach(p => {
-      preWithAllTypes = And(HasType(p._1, p._2), preWithAllTypes)
+      preWithAllTypes = UniversalQuantifier(p._1, p._2, preWithAllTypes)
     })
     body.proofObligation(preWithAllTypes, post)
   }

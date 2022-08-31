@@ -16,7 +16,7 @@ object JFileReader {
     val program = new mutable.StringBuilder()
     val scanner = new Scanner(new InputStreamReader(new FileInputStream(filename)))
     while (scanner.hasNextLine) {
-      program.append(scanner.nextLine())
+      program.append(scanner.nextLine()).append("\n")
     }
     program.toString()
   }

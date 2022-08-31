@@ -35,22 +35,20 @@ def permutation[T](l1: List[T], l2: List[T], comp: (T -> T -> Bool)): Bool := {
 };
 
 
-#![True] {
-let c := lambda x:Nat, lambda y: Nat, x <= y;
+#![True]
+def sort[T](L: List[Nat], comp: (T -> T -> Bool)): List[T] := {
+    let l := L;
 
-let l := L;
+    let sortedList := empty[T];
 
-let sortedList := empty[Nat];
-
-while (isNotEmpty[Nat](l))
-    #![(sorted(sortedList)(c) = true) /\ (subset(append(sortedList)(l))(L)(c) = true)
-    /\ (subset(L)(append(l)(sortedList))(c) = true)] do {
-    match l with {
-        | cons:[first, rest] => {
-            let l := rest;
-            let sortedList := insert[Nat](sortedList)(first)(c)
+    while (isNotEmpty[T](l)) #![(sorted[T](sortedList)(c) = true) /\ (subset[T](append[T](sortedList)(l))(L)(c) = true)
+        /\ (subset[T](L)(append[T](l)(sortedList))(c) = true)] do {
+        match l with {
+            | cons:[first, rest] => {
+                let l := rest;
+                let sortedList := insert[T](sortedList)(first)(c)
+            }
         }
-    }
-};
-sortedList
-} #![(sorted(sortedList)(c) = true) /\ (permutation(sortedList)(L)(c) = true)]
+    };
+    sortedList
+}#![(sorted[T](sortedList)(c) = true) /\ (permutation[T](sortedList)(L)(c) = true)]

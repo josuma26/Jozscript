@@ -1,24 +1,28 @@
 
-import hoarelogic.logic.Proposition
 import language.expressions.Expression
 import language.values.Value
 import language.{Environment, Store, Type}
 import preprocessing.JFileReader
 
 object main {
+
+  private val PROGRAM_PATH = "src/main/scala/programs/"
+  private val OUTPUT_PATH = "src/main/proofs/"
+
   def main(args: Array[String]): Unit = {
-    JFileReader.read("src/main/scala/programs/sorting.txt").generateCoqFile("sample.v")
-    //fromFile("src/main/scala/programs/fact.txt")
+    verifyProgram("fact")
   }
 
-  private def fromFile(fileName: String): (Type, Value) = {
+  private def verifyProgram(progName: String) = {
+    val programFile = PROGRAM_PATH + progName + ".txt"
+    val outputFile = OUTPUT_PATH + progName + "_proof.v"
+    JFileReader.read(programFile).generateCoqFile(outputFile)
+  }
+
+  private def executeFromFile(fileName: String): (Type, Value) = {
     val expr = JFileReader.read(fileName)
     println(expr)
     runProgram(expr)
-  }
-
-  private def proofObligtion(pre: Proposition, post: Proposition, program: Expression) = {
-    println(program.proofObligation(pre, post))
   }
 
   private def runProgram(program: Expression): (Type, Value) = {

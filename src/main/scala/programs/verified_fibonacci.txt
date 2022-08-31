@@ -7,8 +7,7 @@ def fibonacci(n: Nat): Nat := {
     }
 };
 
-let N := 0;
-#![True] {
+#![N: Nat] {
     let n := N;
     let a := 1;
     let b := 1;
@@ -16,7 +15,5 @@ let N := 0;
         let b := a + b;
         let a := b - a;
         let n := n - 1
-    };
-
-    [a, fibonacci(N)]
+    }
 } #![a = fibonacci(N)]

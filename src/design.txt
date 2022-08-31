@@ -5,3 +5,7 @@ Need to prove proof obligations are provable if and only if program is correct:
     forall P e Q, {P} e {Q} <-> #![P] e #![Q]
 
 
+Problems:
+- produced definitions are not super useful in coq
+- lots of manual effort is still needed to write coq file
+

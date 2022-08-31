@@ -3,6 +3,7 @@ package language.expressions
 import hoarelogic.logic.{And, Implies, Proposition, True}
 import language._
 import language.values.Value
+import preprocessing.JFileReader
 
 import java.io.{File, PrintWriter}
 
@@ -54,7 +55,15 @@ trait Expression {
     fileBuilder.close()
   }
 
-  protected def writeCoqToFile(writer: Appendable): Unit = writer.append(this.printCoq())
+  protected def writeCoqToFile(writer: Appendable): Unit = {
+    writeCoreLib(writer)
+    writer.append(this.printCoq())
+  }
+
+  private def writeCoreLib(writer: Appendable): Unit = {
+    val corelib = JFileReader.readFileLines("src/main/proofs/corelib.v")
+    writer.append(corelib)
+  }
 }
 
 case class Sequence(s1: Expression, s2: Expression) extends Expression {

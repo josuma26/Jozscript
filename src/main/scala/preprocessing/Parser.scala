@@ -133,13 +133,19 @@ object Parser {
     }
   }
 
-  // TODO: maybe explicitly parse out ExprProp sub-props?
   def parseProposition(afterGen: Proposition => Generator, token: Token): Generator = {
     token match {
       case BeginPropToken() => FromToken(matchTokenThen[OBracket](_)(_ => PropositionGenerator(afterGen)))
       case TrueToken() => parseAfterProposition(afterGen, True())
       case FalseToken() => parseAfterProposition(afterGen, False())
       case NotToken() => PropositionGenerator(nextProp => parseAfterProposition(afterGen, Not(nextProp)))
+      case VariableToken(varName) => FromToken(tok => {
+        if (tok == Colon()) {
+          TypeGenerator(ty => parseAfterProposition(afterGen, HasType(varName, ty)))
+        } else {
+          parseAfterExpression(expr => parseAfterProposition(afterGen, ExprProp(expr)), Var(varName), tok)
+        }
+      })
       case other => parseExpression(expr => parseAfterProposition(afterGen, ExprProp(expr)), other)
     }
   }
