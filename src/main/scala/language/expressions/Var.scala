@@ -33,4 +33,6 @@ case class Var(variable: String) extends Expression {
   override protected def checkSub(other: Var.this.type): Boolean = true
 
   override def toString: String = variable
+
+  override def printCoq(env: Environment): String = this.toString
 }

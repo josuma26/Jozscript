@@ -26,9 +26,8 @@ def findPath[T](g: Graph[T], from: T, to: T, eq: (T -> T -> Bool)): Option[List[
     let path := none:unit as Option[List[T]];
 
     while (isCons[T](stack)) #![andmap[T](paths)(isPathFrom(from)) /\
-    pathFrom(from)(to)(path) /\
-    (paths(head) = some(pathTo)) /\
-    (contains[T](stack)(x)(eq) = true) -> (pathFrom(from)(x)(paths(x)))] do {
+            pathFrom(from)(to)(path) /\
+            (contains[T](stack)(x)(eq) = true) -> (pathFrom(from)(x)(paths(x)))] do {
         match stack with {
             | cons:[first, rest] => { let head := first; let stack := rest }
         };
@@ -42,9 +41,10 @@ def findPath[T](g: Graph[T], from: T, to: T, eq: (T -> T -> Bool)): Option[List[
             | false => {
                 let neighs := g.1(head);
                 while isCons[T](neighs) #![andmap[T](paths)(isPathFrom(from)) /\
-                pathFrom(from)(to)(path) /\
-                                            (paths(head) = some(pathTo)) /\
-                                            (contains[T](stack)(x)(eq) = true) -> (pathFrom(from)(x)(paths(x)))] do {
+                    pathFrom(from)(to)(path) /\
+                    (paths(head) = some(pathTo)) /\
+                    (contains[T](stack)(x)(eq) = true) -> (pathFrom(from)(x)(paths(x)))] do {
+
                     match neighs with {
                         | cons:[first, rest] => {let neighs := rest; match paths(first) with {
                             | some:p => unit

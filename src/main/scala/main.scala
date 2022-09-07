@@ -10,26 +10,28 @@ object main {
   private val OUTPUT_PATH = "src/main/proofs/"
 
   def main(args: Array[String]): Unit = {
-    verifyProgram("fact")
+    verifyProgram("graphs")
   }
 
   private def verifyProgram(progName: String) = {
     val programFile = PROGRAM_PATH + progName + ".txt"
     val outputFile = OUTPUT_PATH + progName + "_proof.v"
-    JFileReader.read(programFile).generateCoqFile(outputFile)
+    val (_,_, env) = executeFromFile(progName)
+    JFileReader.read(programFile).generateCoqFile(outputFile, env)
   }
 
-  private def executeFromFile(fileName: String): (Type, Value) = {
-    val expr = JFileReader.read(fileName)
+  private def executeFromFile(progName: String): (Type, Value, Environment) = {
+    val expr = JFileReader.read(PROGRAM_PATH + progName + ".txt")
     println(expr)
     runProgram(expr)
   }
 
-  private def runProgram(program: Expression): (Type, Value) = {
-    val ty = program.typecheck(new Environment())
+  private def runProgram(program: Expression): (Type, Value, Environment) = {
+    val env = new Environment()
+    val ty = program.typecheck(env)
     println(ty)
     val value = program.evaluate(new Store())
     println(value)
-    (ty, value)
+    (ty, value, env )
   }
 }

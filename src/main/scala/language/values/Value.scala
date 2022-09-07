@@ -47,7 +47,7 @@ case class Func(arg: String, ty: Type, body: Expression) extends Value {
 
   override def toString: String = "lambda " + arg + ": " + ty.toString + ", " + body.toString
 
-  override def printCoq(): String = "(fun " + arg + ": " + ty.printCoq() + " => " + body.printCoq() + ")"
+  override def printCoq(env: Environment): String = "(fun " + arg + ": " + ty.printCoq() + " => " + body.printCoq(env) + ")"
 }
 
 case class Bool(value: Boolean) extends Value {
@@ -177,7 +177,7 @@ case class TypeAbstraction(typeArg: String, body: Expression) extends Value {
     body.sameShapeAs(other.body)
   }
 
-  override def printCoq(): String = "fun {" + typeArg + ": Type} => " + body.printCoq()
+  override def printCoq(env: Environment): String = "fun {" + typeArg + ": Type} => " + body.printCoq(env)
 }
 
 

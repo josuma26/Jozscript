@@ -21,7 +21,7 @@ Ltac isZero n := destruct n; [rewrites | lia].
 Fixpoint factorial (n: nat): nat := 
 	match n with 
 	| 0 => 1
-	| i => (i * (factorial (i - 1)))
+	| S i => (n * (factorial (i)))
 	end.
 
 (*
@@ -36,6 +36,14 @@ let x := (x - 1)}
 {{(a = (factorial X))}}
 *)
 
-Theorem correct: forall (X: nat), (True) /\ ((True) /\ ((((((True) /\ (a = 1)) /\ (x = X)) -> (((a * (factorial x)) = (factorial X)))) /\ ((True) /\ ((((((a' * (factorial x)) = (factorial X))) /\ ((x > 0))) /\ (a = (x * a'))) -> (((a * (factorial (x - 1))) = (factorial X)))))) /\ (((((a * (factorial x)) = (factorial X))) /\ (~(x > 0))) -> ((a = (factorial X)))))).
+
+Theorem fact_minu1: forall x, x > 0 -> factorial(x - 1) = (Nat.div (factorial x) x).
+  Proof.
+    Admitted.
+
+Theorem correct: forall (X x a a' b b': nat), (True) /\ ((True) /\ ((((((True) /\ (a = 1)) /\ (x = X)) -> (((a * (factorial x)) = (factorial X)))) /\ ((True) /\ ((((((a' * (factorial x)) = (factorial X))) /\ ((x > 0))) /\ (a = (x * a'))) -> (((a * (factorial (x - 1))) = (factorial X)))))) /\ (((((a * (factorial x)) = (factorial X))) /\ (~(x > 0))) -> ((a = (factorial X)))))).
 	Proof.
+    myauto.
+    - rewrite fact_minu1. admit. auto.
+    - isZero x. simpl in H. rewrite times1 in H. auto.
 Admitted.

@@ -5,6 +5,8 @@ import language.expressions.{Expression, Var}
 import language.values._
 import preprocessing.JFileReader
 
+import scala.annotation.tailrec
+
 
 trait Statement extends Expression {
 
@@ -13,6 +15,8 @@ trait Statement extends Expression {
   override def typeSubs(typeVar: String, ty: Type): Statement
 
   override protected def checkSub(other: Statement.this.type): Boolean = ???
+
+  override def printCoq(env: Environment): String = toString
 
 }
 
@@ -28,17 +32,22 @@ case class Skip() extends Statement {
   override def toString: String = "skip"
 
   override def typeSubs(typeVar: String, ty: Type): Statement = this
+
+  override def printCoq(env: Environment): String = toString
 }
 
 case class Assign(varName: String, value: Expression) extends Statement {
 
-  override def proofObligation(pre: Proposition, post: Proposition): Proposition = {
+  override def proofObligation(pre: Proposition, post: Proposition, env: Environment): Proposition = {
     Implies(pre, post.substitute(varName, value))
   }
 
-  override def pushThrough(pre: Proposition): Proposition = {
+  override def pushThrough(pre: Proposition, env: Environment): Proposition = {
     val newVar = Var(varName + "'")
-    And(pre.substitute(varName, newVar), VarEq(varName, value.replace(varName, newVar)))
+    val ty = env.get(varName)
+    And(
+      And(pre.substitute(varName, newVar), VarEq(varName, value.replace(varName, newVar))),
+      And(HasType(varName, ty), HasType(varName + "'", ty)))
   }
 
   override def typecheck(env: Environment): Type = {
@@ -61,7 +70,7 @@ case class Assign(varName: String, value: Expression) extends Statement {
 
   override def toString: String = "let " + varName + " := " + value.toString
 
-  override def printCoq(): String = "Definition " + varName + " := " + value.printCoq() + "."
+  override def printCoq(env: Environment): String = "Definition " + varName + " := " + value.printCoq(env) + "."
 
   override def typeSubs(typeVar: String, ty: Type): Statement = {
     Assign(varName, value.typeSubs(typeVar, ty))
@@ -70,11 +79,16 @@ case class Assign(varName: String, value: Expression) extends Statement {
 
 case class IfStatement(cond: Expression, e1: Expression, e2: Expression) extends Statement {
 
-  override def proofObligation(pre: Proposition, post: Proposition): Proposition = {
-    val e1Holds = e1.proofObligation(And(pre, ExprProp(cond)), post)
-    val e2Holds = e2.proofObligation(And(pre, Not(ExprProp(cond))), post)
+  override def proofObligation(pre: Proposition, post: Proposition, env: Environment): Proposition = {
+    val e1Holds = e1.proofObligation(And(pre, ExprProp(cond)), post, env)
+    val e2Holds = e2.proofObligation(And(pre, Not(ExprProp(cond))), post, env)
     And(e1Holds, e2Holds)
   }
+
+  override def pushThrough(pre: Proposition, env: Environment): Proposition = {
+    super.pushThrough(pre, env)
+  }
+
   override def typecheck(env: Environment): Type = {
     cond.typecheck(env).ensureIsType[BoolType](env)
     e1.typecheck(env)
@@ -109,19 +123,19 @@ case class IfStatement(cond: Expression, e1: Expression, e2: Expression) extends
 
 case class WhileLoop(cond: Expression, body: Expression, invariant: Proposition= True()) extends Statement {
 
-  override def proofObligation(pre: Proposition, post: Proposition): Proposition = {
+  override def proofObligation(pre: Proposition, post: Proposition, env: Environment): Proposition = {
     val invHoldsStart = Implies(pre, invariant)
-    val invPreserved = body.proofObligation(And(invariant, ExprProp(cond)), invariant)
+    val invPreserved = body.proofObligation(And(invariant, ExprProp(cond)), invariant, env)
     val impPost = Implies(And(invariant, Not(ExprProp(cond))), post)
     And(And(invHoldsStart, invPreserved), impPost)
   }
 
-  override def pushThrough(pre: Proposition): Proposition = {
+  override def pushThrough(pre: Proposition, env: Environment): Proposition = {
     And(invariant, Not(ExprProp(cond)))
   }
 
-  override def impliesPushed(pre: Proposition): Proposition = {
-    proofObligation(pre, pushThrough(pre))
+  override def impliesPushed(pre: Proposition, env: Environment): Proposition = {
+    proofObligation(pre, pushThrough(pre, env), env)
   }
 
   override def substitute(variable: String, value: Value): Statement = {
@@ -156,7 +170,7 @@ case class WhileLoop(cond: Expression, body: Expression, invariant: Proposition=
 
 case class TypeDefinition(name: String, ty: Type) extends Statement {
 
-  override def proofObligation(pre: Proposition, post: Proposition): Proposition = True()
+  override def proofObligation(pre: Proposition, post: Proposition, env: Environment): Proposition = True()
 
   override def substitute(variable: String, value: Value): Statement = this
 
@@ -171,18 +185,18 @@ case class TypeDefinition(name: String, ty: Type) extends Statement {
     UnitType()
   }
 
-  override def printCoq(): String = "" //Inductive " + name + " := \n" + ty.printCoq() + "."
+  override def printCoq(env: Environment): String = "" //Inductive " + name + " := \n" + ty.printCoq() + "."
 }
 
 case class FunctionDefinition(name: String, typeVars: List[String],
                               args:Map[String, Type], retTy: Type, body: Expression) extends Statement {
 
-  override def proofObligation(pre: Proposition, post: Proposition): Proposition = {
+  override def proofObligation(pre: Proposition, post: Proposition, env: Environment): Proposition = {
     var preWithAllTypes = pre
     args.foreach(p => {
-      preWithAllTypes = UniversalQuantifier(p._1, p._2, preWithAllTypes)
+      preWithAllTypes = And(HasType(p._1, p._2), preWithAllTypes)
     })
-    body.proofObligation(preWithAllTypes, post)
+    body.proofObligation(preWithAllTypes, post, env)
   }
 
   override def substitute(variable: String, value: Value): Statement = {
@@ -210,53 +224,72 @@ case class FunctionDefinition(name: String, typeVars: List[String],
   }
 
   override def evaluate(store: Store): Value = {
-    var curried = curry(args.keySet.toList.reverse, body)
+    var curried = curry()
     typeVars.foreach(typeVar => curried = TypeAbstraction(typeVar, curried))
     store.save(name, curried.evaluate(store))
     UnitVal()
   }
 
-
   override def typecheck(env: Environment): Type = {
-    var curriedType = curriedArguments(args.keySet.toList.reverse, retTy)
-    var curried = curry(args.keySet.toList.reverse, body)
+    val (_, curriedType) = curryBody()
+
+    args.foreach({
+      case (argName, argTy) => env.bind(argName, argTy)
+    })
+    env.bind(name, curriedType)
+
+    val bodyTy = body.typecheck(env)
+    args.foreach({
+      case (argName, _) => env.unbind(argName)
+    })
+
+    if (!bodyTy.eq(retTy, env)) {
+      throw new IllegalArgumentException(s"Expected $name to have type $retTy.")
+    }
+
+    UnitType()
+  }
+
+  private def curryBody(): (Expression, Type) = {
+    var curriedType = curriedArguments()
+    var curried = curry()
 
     typeVars.foreach(typeVar => {
       curriedType = UniversalType(typeVar, curriedType)
       curried = TypeAbstraction(typeVar, curried)
     })
-
-    env.bind(name, curriedType)
-    curried.typecheck(env)
-    UnitType()
+    (curried, curriedType)
   }
 
-  private def curry(args: List[String], acc: Expression): Expression = {
-    if (args.isEmpty) {
-      acc
-    } else {
-      val (_,rest) = args.splitAt(1)
-      val arg = args.head
-      curry(rest, Func(arg, this.args(arg), acc))
-    }
+  private def curry(): Expression = {
+    iterateOverArgs(body, arg => body => Func(arg, this.args(arg), body))
   }
 
-  private def curriedArguments(args: List[String], acc: Type): Type = {
+  private def curriedArguments(): Type = {
+    iterateOverArgs(retTy, arg => ty => FuncTy(this.args(arg), ty))
+  }
+
+  private def iterateOverArgs[T](start: T, func: String => T => T): T = {
+    iterateOverArgsAccum(args.keySet.toList.reverse, start, func)
+  }
+
+  @tailrec
+  private def iterateOverArgsAccum[T](args: List[String], acc: T, func: (String => T => T)): T = {
     if (args.isEmpty) {
       acc
     } else {
       val (_, rest) = args.splitAt(1)
-      val arg = args.head
-      curriedArguments(rest, FuncTy(this.args(arg), acc))
+      val head = args.head
+      iterateOverArgsAccum(rest,func(head)(acc), func)
     }
   }
 
-  override def printCoq(): String = {
+  override def printCoq(env: Environment): String = {
     val typeArgs = if (typeVars.isEmpty)  "" else typeVars.mkString(" {", " ","}")
     val argsString = args.map({
       case (label, ty) => " (" + label + ": " + ty.printCoq() + ")"
     }).mkString(" ")
-    "Fixpoint " + name + typeArgs + argsString + ": " + retTy.printCoq() + " := \n\t" + body.printCoq() + "."
+    "Fixpoint " + name + typeArgs + argsString + ": " + retTy.printCoq() + " := \n\t" + body.printCoq(env) + "."
   }
 }
 
@@ -279,7 +312,7 @@ case class ImportStatement(packageName: String) extends Statement {
 
   override def toString: String = "import " + packageName
 
-  override def printCoq(): String = read().printCoq()
+  override def printCoq(env: Environment): String = read().printCoq(env)
 }
 
 

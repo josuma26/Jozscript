@@ -1,20 +1,30 @@
 package hoarelogic.logic
 
-import language.Type
-import language.expressions.Expression
+import language.{Environment, Type}
+import language.expressions.{Expression, Var}
 
 trait Proposition {
 
   def quantify(): Proposition = {
     val (hasTypes, withoutHasTypes) = this.divideHasTypes()
+    val seen = collection.mutable.Map[String, Type]()
     hasTypes.foldRight(withoutHasTypes)({
-      case (HasType(varName, ty), prop) => UniversalQuantifier(varName, ty, prop)
+      case (HasType(varName, ty), prop) => {
+        if (!seen.contains(varName)) {
+          seen.put(varName, ty)
+          UniversalQuantifier(varName, ty, prop)
+        } else {
+          prop
+        }
+      }
     })
   }
 
   def divideHasTypes(): (List[HasType], Proposition)
 
   def substitute(name: String, e: Expression): Proposition
+
+  def printCoq(env: Environment): String
 }
 
 case class True() extends Proposition {
@@ -24,7 +34,7 @@ case class True() extends Proposition {
     (List(), this)
   }
 
-  override def toString: String = "True"
+  override def printCoq(env: Environment): String = "True"
 }
 case class False() extends Proposition {
   override def substitute(name: String, e: Expression): Proposition = this
@@ -33,7 +43,7 @@ case class False() extends Proposition {
     (List(), this)
   }
 
-  override def toString: String = "False"
+  override def printCoq(env: Environment): String = "False"
 }
 
 case class Implies(p: Proposition, q: Proposition) extends Proposition {
@@ -46,7 +56,7 @@ case class Implies(p: Proposition, q: Proposition) extends Proposition {
     (lhtypes ++ rhtypes, Implies(lprop, rprop))
   }
 
-  override def toString: String = "(" + p.toString + ") -> (" + q.toString + ")"
+  override def printCoq(env: Environment): String = "(" + p.printCoq(env) + ") -> (" + q.printCoq(env) + ")"
 }
 
 
@@ -60,7 +70,7 @@ case class And(p: Proposition, q: Proposition) extends Proposition {
     (lhtypes ++ rhtypes, And(lprop, rprop))
   }
 
-  override def toString: String =  "(" + p.toString + ") /\\ (" + q.toString  + ")"
+  override def printCoq(env: Environment): String =  "(" + p.printCoq(env) + ") /\\ (" + q.printCoq(env)  + ")"
 }
 
 case class Or(p: Proposition, q: Proposition) extends Proposition {
@@ -73,7 +83,7 @@ case class Or(p: Proposition, q: Proposition) extends Proposition {
     (lhtypes ++ rhtypes, Or(lprop, rprop))
   }
 
-  override def toString: String =  "(" + p.toString + ") \\/ (" + q.toString  + ")"
+  override def printCoq(env: Environment): String =  "(" + p.printCoq(env) + ") \\/ (" + q.printCoq(env)  + ")"
 }
 
 case class Not(p: Proposition) extends Proposition {
@@ -84,7 +94,7 @@ case class Not(p: Proposition) extends Proposition {
     (htypes, Not(prop))
   }
 
-  override def toString: String = "~" + p.toString
+  override def printCoq(env: Environment): String = "~" + p.printCoq(env)
 }
 
 case class UniversalQuantifier(binder: String, ty: Type, prop: Proposition) extends Proposition {
@@ -97,7 +107,7 @@ case class UniversalQuantifier(binder: String, ty: Type, prop: Proposition) exte
     (htypes, UniversalQuantifier(binder, ty, p))
   }
 
-  override def toString: String = "forall (" + binder + ": " + ty.printCoq() + "), " + prop.toString
+  override def printCoq(env: Environment): String = "forall (" + binder + ": " + ty.printCoq() + "), " + prop.printCoq(env)
 }
 
 case class ExprProp(expr: Expression) extends Proposition {
@@ -107,7 +117,8 @@ case class ExprProp(expr: Expression) extends Proposition {
 
   override  def divideHasTypes(): (List[HasType], Proposition) = (List(), this)
 
-  override def toString: String = expr.printCoq()
+  override def printCoq(env: Environment): String = expr.printCoq(env)
+
 }
 
 case class VarEq(varName: String, expr: Expression) extends Proposition {
@@ -118,7 +129,7 @@ case class VarEq(varName: String, expr: Expression) extends Proposition {
   override def divideHasTypes(): (List[HasType], Proposition) = (List(), this)
 
 
-  override def toString: String = varName + " = " + expr.printCoq()
+  override def printCoq(env: Environment): String = varName + " = " + expr.printCoq(env)
 }
 
 case class ExprEq(e1: Expression, e2: Expression) extends Proposition {
@@ -128,7 +139,7 @@ case class ExprEq(e1: Expression, e2: Expression) extends Proposition {
 
   override def divideHasTypes(): (List[HasType], Proposition) = (List(), this)
 
-  override def toString: String = e1.printCoq() + " = " + e2.printCoq()
+  override def printCoq(env: Environment): String = e1.printCoq(env) + " = " + e2.printCoq(env)
 }
 
 case class HasType(varName: String, ty: Type) extends Proposition {
@@ -141,7 +152,7 @@ case class HasType(varName: String, ty: Type) extends Proposition {
   }
 
 
-  override def toString: String = varName + ": " + ty.printCoq()
+  override def printCoq(env: Environment): String = varName + ": " + ty.printCoq()
 
 }
 
@@ -151,6 +162,11 @@ case class ExprHasType(expr: Expression, ty: Type) extends Proposition {
   }
 
   override def divideHasTypes(): (List[HasType], Proposition) = {
-    (List(), this)
+    expr match {
+      case Var(variable) => (List(HasType(variable, ty)), True())
+      case _=> (List(), this)
+    }
   }
+
+  override def printCoq(env: Environment): String = expr.printCoq(env) + ": " + ty.printCoq()
 }

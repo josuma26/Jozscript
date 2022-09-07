@@ -36,7 +36,7 @@ abstract class BinOp[T, R, V <: Value, V2 <: Value](op: String, e1: Expression, 
 
   override def toString: String = "(" + e1.toString + " " + op + " " + e2.toString + ")"
 
-  override def printCoq(): String = "(" + e1.printCoq() + " " + op + " " + e2.printCoq() + ")"
+  override def printCoq(env: Environment): String = "(" + e1.printCoq(env) + " " + op + " " + e2.printCoq(env) + ")"
 }
 
 

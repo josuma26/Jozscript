@@ -11,15 +11,15 @@ case class DecoratedProgram(pre: Proposition, prog: Expression, post: Propositio
 
   override def replace(variable: String, expr: Expression): Expression = prog.replace(variable, expr)
 
-  override def typecheck(env: Environment): Type = { println(prog.proofObligation(pre, post)) ; prog.typecheck(env) }
+  override def typecheck(env: Environment): Type = prog.typecheck(env)
 
   override def typeSubs(typeVar: String, ty: Type): Expression = prog.typeSubs(typeVar, ty)
 
   override protected def checkSub(other: DecoratedProgram.this.type): Boolean = prog.sameShapeAs(other.prog)
 
-  override def printCoq(): String = {
-    val po = prog.proofObligation(pre, post)
-    "(*\n" + "{{" + pre.toString + "}}\n\n" + prog.toString() + "\n\n{{" + post.toString + "}}\n*)\n\n" +
-    "Theorem correct: " + po.quantify() + ".\n\tProof.\nAdmitted."
+  override def printCoq(env: Environment): String = {
+    val po = prog.proofObligation(pre, post, env)
+    "(*\n" + "{{" + pre.printCoq(env) + "}}\n\n" + prog.toString + "\n\n{{" + post.printCoq(env) + "}}\n*)\n\n" +
+    "Theorem correct: " + po.quantify().printCoq(env) + ".\n\tProof.\nAdmitted."
   }
 }

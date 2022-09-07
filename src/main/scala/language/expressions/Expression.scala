@@ -22,11 +22,11 @@ trait Expression {
 
   def typecheck(env: Environment): Type
 
-  def proofObligation(pre: Proposition, post: Proposition): Proposition = Implies(pre, post)
+  def proofObligation(pre: Proposition, post: Proposition, env: Environment): Proposition = Implies(pre, post)
 
-  def pushThrough(pre: Proposition): Proposition = pre
+  def pushThrough(pre: Proposition, env: Environment): Proposition = pre
 
-  def impliesPushed(pre: Proposition): Proposition = True()
+  def impliesPushed(pre: Proposition, env: Environment): Proposition = True()
 
   def sameShapeAs(other: Expression): Boolean = {
     if (this.getClass.equals(other.getClass)) {
@@ -47,17 +47,17 @@ trait Expression {
     }
   }
 
-  def printCoq(): String = toString
+  def printCoq(env: Environment): String = this.toString
 
-  def generateCoqFile(fileName: String): Unit = {
+  def generateCoqFile(fileName: String, env: Environment): Unit = {
     val fileBuilder = new PrintWriter(new File(fileName))
-    writeCoqToFile(fileBuilder)
+    writeCoqToFile(fileBuilder, env)
     fileBuilder.close()
   }
 
-  protected def writeCoqToFile(writer: Appendable): Unit = {
+  protected def writeCoqToFile(writer: Appendable, env: Environment): Unit = {
     writeCoreLib(writer)
-    writer.append(this.printCoq())
+    writer.append(this.printCoq(env))
   }
 
   private def writeCoreLib(writer: Appendable): Unit = {
@@ -79,14 +79,14 @@ case class Sequence(s1: Expression, s2: Expression) extends Expression {
     Sequence(s1.replace(variable, value), s2.replace(variable, value))
   }
 
-  override def proofObligation(pre: Proposition, post: Proposition): Proposition = {
-    val pushed = s1.pushThrough(pre)
-    val s1ImpliesPushed = s1.impliesPushed(pre)
-    val s2Post = s2.proofObligation(pushed, post)
+  override def proofObligation(pre: Proposition, post: Proposition, env: Environment): Proposition = {
+    val pushed = s1.pushThrough(pre, env)
+    val s1ImpliesPushed = s1.impliesPushed(pre, env)
+    val s2Post = s2.proofObligation(pushed, post, env)
     And(s1ImpliesPushed, s2Post)
   }
-  override def pushThrough(pre: Proposition): Proposition = {
-    s2.pushThrough(s1.pushThrough(pre))
+  override def pushThrough(pre: Proposition, env: Environment): Proposition = {
+    s2.pushThrough(s1.pushThrough(pre, env), env)
   }
 
   override def typecheck(env: Environment): Type = {
@@ -100,7 +100,7 @@ case class Sequence(s1: Expression, s2: Expression) extends Expression {
 
   override def toString: String = s1.toString + ";\n" + s2.toString
 
-  override def printCoq(): String = s1.printCoq() + "\n\n" + s2.printCoq()
+  override def printCoq(env: Environment): String = s1.printCoq(env) + "\n\n" + s2.printCoq(env)
 
   override def checkSub(other: Sequence.this.type): Boolean = {
     this.s1.sameShapeAs(other.s1) && this.s2.sameShapeAs(other.s2)

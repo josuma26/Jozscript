@@ -1,17 +1,13 @@
 
+import lists;
 
-def factorial(n: Nat): Nat := {
-    match n with {
-        | 0 => 1
-        | i => i * factorial(i-1)
-    }
-};
+#![True] {
 
-#![X:Nat] {
-    let a := 1;
-    let x := X;
-    while (x > 0) #![(a * factorial(x)) = factorial(X)] do {
-        let a := x * a;
-        let x := x - 1
+    match cons[Nat](2)(empty[Nat]) with {
+        | cons:[first, rest] => match first with {
+            | 0 => let x := 2
+            | i => let x := 3
+            }
     }
-} #![a = factorial(X)]
+
+}#![x = 3]

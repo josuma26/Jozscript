@@ -32,7 +32,7 @@ case class TupleExpression(exprs: List[Expression]) extends Expression  {
   }
   override def toString: String = exprs.map(_.toString).mkString("[",", ","]")
 
-  override def printCoq(): String = exprs.map(_.printCoq()).mkString("(", ", ", ")")
+  override def printCoq(env: Environment): String = exprs.map(_.printCoq(env)).mkString("(", ", ", ")")
 }
 
 
@@ -68,5 +68,7 @@ case class Projection(e: Expression, index: Int) extends Expression {
   }
 
   override def toString: String = e.toString + "." + index.toString
+
+  override def printCoq(env: Environment): String = "proj" + index.toString + " " + e.printCoq(env)
 }
 

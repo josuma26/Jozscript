@@ -32,5 +32,5 @@ case class TypeApp(e: Expression, ty: Type) extends Expression {
 
   override def toString: String = e.toString + "[" + ty.toString + "]"
 
-  override def printCoq(): String = e.printCoq()
+  override def printCoq(env: Environment): String = e.printCoq(env)
 }

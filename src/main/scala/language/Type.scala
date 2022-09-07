@@ -26,7 +26,7 @@ sealed trait Type {
 
   def getIfAlias(environment: Environment): Type = {
     this match {
-      case TypeAlias(name) => environment.getAlias(name)
+      case TypeAlias(name) => environment.getAliasIfBound(name)
       case UnivTypeInstant(univ, instant) => univ.getIfAlias(environment) match {
         case UniversalType(typeVar, ty) => ty.substitute(typeVar, instant).getIfAlias(environment)
       }

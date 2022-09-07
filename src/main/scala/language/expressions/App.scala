@@ -43,5 +43,5 @@ case class App(e1: Expression, e2: Expression) extends Expression {
 
   override def toString: String = e1.toString + "(" + e2.toString + ")"
 
-  override def printCoq(): String = "(" + e1.printCoq() + " " + e2.printCoq() + ")"
+  override def printCoq(env: Environment): String = "(" + e1.printCoq(env) + " " + e2.printCoq(env) + ")"
 }

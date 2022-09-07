@@ -32,7 +32,7 @@ case class VariantExpression(label: String, expr: Expression, ty: Type) extends 
   override def typeSubs(typeVar: String, ty: Type): Expression =
     VariantExpression(label, expr.typeSubs(typeVar, ty), this.ty)
 
-  override def printCoq(): String = label + "(" + expr.printCoq() + ")"
+  override def printCoq(env: Environment): String = label.capitalize + "(" + expr.printCoq(env) + ")"
 }
 
 /**
@@ -105,21 +105,21 @@ case class PatternMatch(expression: Expression, cases: List[(Pattern, Expression
     }
   }
 
-  override def proofObligation(pre: Proposition, post: Proposition): Proposition = {
+  override def proofObligation(pre: Proposition, post: Proposition, env: Environment): Proposition = {
     cases.map({
-      case (patt, e) => e.proofObligation(And(pre, patt.matchProp(expression)), post)
+      case (patt, e) => e.proofObligation(And(pre, patt.matchProp(expression, env)), post, env)
     }).reduce(And)
   }
 
-  override def pushThrough(pre: Proposition): Proposition = {
+  override def pushThrough(pre: Proposition, env: Environment): Proposition = {
     cases.map({
-      case (patt, e) => e.pushThrough(And(pre, patt.matchProp(expression)))
+      case (patt, e) => e.pushThrough(And(pre, patt.matchProp(expression,env)), env)
     }).reduce(And)
   }
 
-  override def printCoq(): String = {
-    "match " + expression.printCoq() + " with \n" + cases.map({
-      case (pattern, expr) => "\t| " + pattern.printCoq() + " => " + expr.printCoq()
+  override def printCoq(env: Environment): String = {
+    "match " + expression.printCoq(env) + " with \n" + cases.map({
+      case (pattern, expr) => "\t| " + pattern.printCoq(env) + " => " + expr.printCoq(env)
     }).mkString("\n") + "\n\tend"
   }
 }

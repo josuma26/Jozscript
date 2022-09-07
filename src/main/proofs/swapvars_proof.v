@@ -1,12 +1,10 @@
 From Coq Require Import Lia.
 
-Set Implicit Arguments.
-
 Axiom orb_true_intro: forall (a b: bool),
     a = true \/ b = true -> (orb a  b) = true.
 
 Axiom orb_prop: forall (a b: bool),
-    (orb a b) = true -> a = true \/ b = true.
+    a = true \/ b = true -> (orb a b) = true.
 
 Theorem minus0: forall n, n - 0 = n. Proof. induction n; auto.  Qed.
 
@@ -25,19 +23,22 @@ Ltac myauto :=
          end;  subst; simpl; auto; rewrites.
 
 Ltac isZero n := destruct n; [rewrites | lia].
+(*
+{{True}}
 
-Inductive List (T: Type): Type :=
-  | Nil: unit -> List T
-  | Cons: (T * List T) -> List T.
+Definition a := 10.
 
-Arguments Nil {_} _.
+Definition b := 5.
 
-Definition list_ind :
-  forall {T} (P: List T -> Prop),
-    (forall (u: unit), P (Nil u)) ->
-    (forall x l, P l -> P (Cons (x,l))) -> (forall l, P l) :=
-  fun {T} => fun P => fun P1 => fun Pl =>
-    fix f (l: List T):= match l with
-                          | (Nil tt) => P1 tt
-                          | (Cons (first, rest)) => Pl first rest (f rest)
-                          end.
+Definition a := (a + b).
+
+Definition b := (a - b).
+
+Definition a := (a - b).
+
+{{((a = 5)) /\ ((b = 10))}}
+*)
+
+Theorem correct: forall (a: nat), forall (a': nat), forall (b: nat), forall (b': nat), (True) /\ ((True) /\ ((True) /\ ((True) /\ ((((((((((True) /\ (a' = 10)) /\ ((True) /\ (True))) /\ (b' = 5)) /\ ((True) /\ (True))) /\ (a = (a' + b'))) /\ ((True) /\ (True))) /\ (b = (a - b'))) /\ ((True) /\ (True))) -> ((((a - b) = 5)) /\ ((b = 10))))))).
+	Proof.
+Admitted.

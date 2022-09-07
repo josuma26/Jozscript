@@ -2,6 +2,11 @@ From Coq Require Import Lia.
 
 Set Implicit Arguments.
 
+Axiom orb_true_intro: forall (a b: bool),
+    a = true \/ b = true -> (orb a  b) = true.
+
+Axiom orb_prop: forall (a b: bool),
+    a = true \/ b = true -> (orb a b) = true.
 
 Ltac myauto :=
   intros; repeat (split; auto); intros;
@@ -22,6 +27,16 @@ Inductive List (T: Type): Type :=
   | Cons: (T * List T) -> List T.
 
 Arguments Nil {_} _.
+
+Definition listInd :
+  forall {T} (P: List T -> Prop),
+    (forall (u: unit), P (Nil u)) ->
+    (forall x l, P l -> P (Cons (x,l))) -> (forall l, P l) :=
+  fun {T} => fun P => fun P1 => fun Pl =>
+    fix f (l: List T):= match l with
+                          | (Nil tt) => P1 tt
+                          | (Cons (first, rest)) => Pl first rest (f rest)
+                          end.
 
 Definition isEmpty := fun {T: Type} => (fun l: List T => match l with 
 	| (Nil u) => true
@@ -143,17 +158,27 @@ sortedList)
 {{((((sorted sortedList) c) = true)) /\ (((((permutation sortedList) L) c) = true))}}
 *)
 
+
+Theorem subset_cons_weaken: forall {T} (x: T) l c,
+    subset l (cons x l) c = true.
+  Proof.
+    Admitted.
+
 Theorem subset_refl: forall {T} (l: List T) c,
     subset l l c = true.
   Proof.
+    induction l using @listInd; intros; simpl. auto.
+    apply andb_true_intro. split.
+    - apply orb_true_intro. left. admit.
+    - apply subset_cons_weaken. 
     Admitted.
 
 Theorem append_empty: forall {T} (l: List T),
     append l empty = l.
   Proof.
-    induction l. simpl. unfold empty. destruct u. auto.
-    Admitted.
-
+    induction l using @listInd. simpl. unfold empty. auto.
+    simpl. rewrite IHl. auto.
+  Qed.
 
 Theorem sorted_insert: forall {T} (l: List T) x c,
     sorted l c = true -> sorted (insert l x c) c = true.

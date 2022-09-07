@@ -1,7 +1,7 @@
 package language
 
-import hoarelogic.logic.{ExprEq, Proposition}
-import language.expressions.{Expression, TupleExpression, TypeApp, Var, VariantExpression}
+import hoarelogic.logic._
+import language.expressions._
 import language.values._
 
 /**
@@ -42,9 +42,46 @@ trait Pattern {
   def typeCheckBound(expr: Expression, env: Environment, valueType: Type): Type
 
 
-  def matchProp(value: Expression): Proposition
+  def matchProp(value: Expression, env: Environment): Proposition
 
-  def printCoq(): String
+  def printCoq(env: Environment): String
+
+  def bindFreeVariables(patternValue: Expression, env: Environment, valueType: Type): Unit = {
+    patternValue match {
+      case Num(_) | Bool(_) | UnitVal() =>
+      case Func(arg, ty, body) => ???
+      case TupleValue(values) => bindTuple(values, env, valueType)
+      case TupleExpression(exprs) => bindTuple(exprs, env, valueType)
+      case Var(varName) => env.bindIfFree(varName, valueType)
+      case VariantValue(label, value, _) => ???
+      case TypeApp(e, ty) => bindFreeVariables(e, env, valueType)
+      case App(e1, e2) => bindFreeVariables(e1, env, valueType); bindFreeVariables(e2, env, valueType)
+      case pa => throw new IllegalArgumentException(s"Invalid pattern $pa")
+    }
+  }
+
+  private def bindTuple(values: List[Expression], env: Environment, valueType: Type): Unit = {
+    val tupleTypes = valueType.ensureIsType[ProductTy](env).types
+    if (values.length != tupleTypes.length) {
+      throw new IllegalArgumentException("Value cardinality mismath. This branch should not have matched.")
+    }
+    values.indices.foreach(index => bindFreeVariables(values(index), env, tupleTypes(index)))
+  }
+
+  def unbindFreeVariables(value: Expression, env: Environment): Unit = {
+    value match {
+      case Num(_) | Bool(_) | UnitVal() =>
+      case Func(arg, ty, body) => ???
+      case TupleValue(values) =>
+        values.indices.foreach(index => unbindFreeVariables(values(index), env))
+      case TupleExpression(values) => values.indices.foreach(index => unbindFreeVariables(values(index), env))
+      case Var(varName) => env.unbind(varName)
+      case VariantValue(label, value, _) => ???
+      case TypeApp(e, ty) => unbindFreeVariables(e, env)
+      case App(e1, e2) => unbindFreeVariables(e1, env); unbindFreeVariables(e2, env)
+
+    }
+  }
 
 }
 
@@ -73,15 +110,34 @@ case class LabelBinderPattern(label: String, binder: Pattern) extends Pattern {
     binder.typeCheckBound(expr, env, optTy.get)
   }
 
-  override def matchProp(value: Expression): Proposition = {
-    binder.matchProp(value) match {
-      case ExprEq(e1, e2) => ExprEq(VariantExpression(label, e1, UnitType()), e2)
+  override def matchProp(value: Expression, env: Environment): Proposition = {
+    value.typecheck(env).getIfAlias(env) match {
+      case SumTy(types) => binder match {
+        case ExpressionPattern(patternValue) => bindFreeVariables(patternValue, env, types(label))
+      }
+    }
+    binder.matchProp(value, env) match {
+      case ExprEq(e1, e2) => e2.typecheck(env).getIfAlias(env) match {
+        case SumTy(types) => And(getAllExprHasTypes(types(label), e1),
+        ExprEq(e2, VariantExpression(label, e1, types(label))))
+      }
+    }
+  }
+
+  private def getAllExprHasTypes(ty: Type, expr: Expression): Proposition = {
+    (ty, expr) match {
+      case (ProductTy(tys), TupleExpression(exprs)) =>
+        if (tys.length != exprs.length) {
+          throw new IllegalArgumentException("Need an equal amount of types and expression in tuple pattern.")
+        }
+        tys.indices.foldRight[Proposition](True())((i, p) => And(getAllExprHasTypes(tys(i), exprs(i)), p))
+      case (t, p) => ExprHasType(p,t)
     }
   }
 
   override def toString: String = "(" + label + " " +  binder.toString + ")"
 
-  override def printCoq(): String = "(" + label.capitalize + " " + binder.printCoq() + ")"
+  override def printCoq(env: Environment): String = "(" + label.capitalize + " " + binder.printCoq(env) + ")"
 
 
 }
@@ -123,45 +179,15 @@ case class ExpressionPattern(patternValue: Expression) extends Pattern {
     exprTy
   }
 
-  override def matchProp(value: Expression): Proposition =  ExprEq(patternValue, value)
-
-  private def bindFreeVariables(patternValue: Expression, env: Environment, valueType: Type): Unit = {
-    patternValue match {
-      case Num(_) | Bool(_) | UnitVal() =>
-      case Func(arg, ty, body) => ???
-      case TupleValue(values) => bindTuple(values, env, valueType)
-      case TupleExpression(exprs) => bindTuple(exprs, env, valueType)
-      case Var(varName) => env.bind(varName, valueType)
-      case VariantValue(label, value, _) => ???
-      case TypeApp(e, ty) => bindFreeVariables(e, env, valueType)
-      case pa => throw new IllegalArgumentException(s"Invalid pattern $pa")
-    }
+  override def matchProp(value: Expression, env: Environment): Proposition = {
+    ExprEq(patternValue, value)
   }
 
-  private def bindTuple(values: List[Expression], env: Environment, valueType: Type): Unit = {
-    val tupleTypes = valueType.ensureIsType[ProductTy](env).types
-    if (values.length != tupleTypes.length) {
-      throw new IllegalArgumentException("Value cardinality mismath. This branch should not have matched.")
-    }
-    values.indices.foreach(index => bindFreeVariables(values(index), env, tupleTypes(index)))
-  }
 
-  private def unbindFreeVariables(value: Expression, env: Environment): Unit = {
-    value match {
-      case Num(_) | Bool(_) | UnitVal() =>
-      case Func(arg, ty, body) => ???
-      case TupleValue(values) =>
-        values.indices.foreach(index => unbindFreeVariables(values(index), env))
-      case TupleExpression(values) => values.indices.foreach(index => unbindFreeVariables(values(index), env))
-      case Var(varName) => env.unbind(varName)
-      case VariantValue(label, value, _) => ???
-      case TypeApp(e, ty) => unbindFreeVariables(e, env)
-    }
-  }
 
   override def toString: String = patternValue.toString()
 
-  override def printCoq(): String = patternValue.printCoq()
+  override def printCoq(env: Environment): String = patternValue.printCoq(env)
 
 }
 

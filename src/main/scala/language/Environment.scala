@@ -21,6 +21,12 @@ class Environment {
     typeMap.put(name, ty.getIfAlias(this))
   }
 
+  def bindIfFree(name: String, ty: Type): Unit = {
+    if (!typeMap.contains(name)) {
+      typeMap.put(name, ty.getIfAlias(this))
+    }
+  }
+
   def unbind(name: String): Unit = {
     typeMap.remove(name)
   }
@@ -37,6 +43,13 @@ class Environment {
       return typeAliases(name)
     }
     throw new IllegalArgumentException(s"No type alias for name: $name")
+  }
+
+  def getAliasIfBound(name: String): Type = {
+    if (typeAliases.contains(name)) {
+      return typeAliases(name)
+    }
+    TypeAlias(name)
   }
 
   def isAlias(name: String): Boolean = typeAliases.contains(name)
